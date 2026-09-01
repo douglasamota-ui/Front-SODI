@@ -1,29 +1,20 @@
+import { cn } from "@/lib/cn";
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, TouchableOpacityProps } from "react-native";
 
-const BotaoCad = () => {
+type BotaoProps = TouchableOpacityProps & {
+  className?: string;
+  children: React.ReactNode;
+};
+
+const BotaoCad = ({ className, children, ...props }: BotaoProps) => {
   return (
-    <TouchableOpacity style={styles.botao}>
-      <Text style={styles.texto}>Cadastrar</Text>
+    <TouchableOpacity
+      className={cn("bg-#3c8670-600 p-5 rounded-full min-w-40", className)}
+      {...props}
+    >
+      {children}
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  botao: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#24ca85",
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  texto: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-});
-
 export default BotaoCad;

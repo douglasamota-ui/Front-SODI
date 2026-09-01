@@ -23,15 +23,14 @@ export async function BasicSignin(email: string, password: string) {
 
 //Basico
 export async function CreateAccount(
-  name: string,
-  email: string,
-  password: string
+  
+  email_usuario: string,
+  senha_usuario: string
 ) {
   try {
-    const { status } = await api.post("/createAccount", {
-      name,
-      email,
-      password,
+    const { status } = await api.post("/cadastro", {
+      email_usuario,
+      senha_usuario,
     });
     return status;
   } catch (error) {

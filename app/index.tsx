@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import Botao from "@/components/botao/botao";
+import { Link } from "expo-router";
 
 const App = () => {
   return (
@@ -39,8 +40,11 @@ const App = () => {
           secureTextEntry
           style={styles.input}
         />
-
+ 
         <Botao />
+           <Link href={"/cadastro"}>
+            <Text>Cadastre-se</Text>
+          </Link>
       </View>
 
       <View style={styles.circleDecoration} />

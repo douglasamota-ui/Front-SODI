@@ -1,172 +1,133 @@
+import Botao from "@/components/BotaoCad/Botaocad";
+import CampoDeTexto from "@/components/CampoTextoCad/CampoTextoCad";
+import { CreateAccount } from "@/service/user.service";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
-import { Image } from "expo-image";
-import BotaoCad from "@/components/BotaoCad/Botaocad";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const App = () => {
-  const [email, setEmail] = useState<string>("");
-  const [senha, setSenha] = useState<string>("");
+const Cadastro = () => {
+  const router = useRouter();
+
+  const [email_usuario, setEmailUsuario] = useState<string>("");
+  const [senha_usuario, setSenhaUsuario] = useState<string>("");
   const [confirmarSenha, setConfirmarSenha] = useState<string>("");
 
-  const [isErrorInEmail, setIsErrorInEmail] = useState<boolean>(false);
-  const [isErrorInSenha, setIsErrorInSenha] = useState<boolean>(false);
-
   const regex_email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const [isErrorInEmail, setIsErrorInEmail] = useState<boolean>(false);
 
   useEffect(() => {
-    if (email === "") {
+    if (email_usuario === "") {
       setIsErrorInEmail(false);
     } else {
-      if (!regex_email.test(email)) {
-        setIsErrorInEmail(true);
-      } else {
-        setIsErrorInEmail(false);
-      }
+      setIsErrorInEmail(!regex_email.test(email_usuario));
     }
-  }, [email]);
+  }, [email_usuario]);
 
   const regex_senha = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  const [isErrorInSenha, setIsErrorInSenha] = useState<boolean>(false);
 
   useEffect(() => {
-    if (senha === "") {
+    if (senha_usuario === "") {
       setIsErrorInSenha(false);
     } else {
-      if (!regex_senha.test(senha)) {
-        setIsErrorInSenha(true);
-      } else {
-        setIsErrorInSenha(false);
-      }
+      setIsErrorInSenha(!regex_senha.test(senha_usuario));
     }
-  }, [senha]);
+  }, [senha_usuario]);
+
+  const [isErrorInConfirmarSenha, setIsErrorInConfirmarSenha] =
+    useState<boolean>(false);
+
+  useEffect(() => {
+    if (confirmarSenha === "") {
+      setIsErrorInConfirmarSenha(false);
+    } else {
+      setIsErrorInConfirmarSenha(confirmarSenha !== senha_usuario);
+    }
+  }, [confirmarSenha, senha_usuario]);
+
+  const onSubmit = async (email: string, senha: string) => {
+    const resposta = await CreateAccount(email, senha);
+    if (resposta === 201) {
+      alert("Conta criada");
+      router.back();
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.cabecalho}>
-        <Image
-          source={require("@/assets/image/sodi_logo_preto.jpg")}
-          style={styles.logo}
-          contentFit="contain"
-        />
-      </View>
-
-      <View style={styles.tabContainer}>
-        <View style={styles.activeTab}>
-          <Text style={styles.activeTabText}>Login</Text>
-        </View>
-        <View style={styles.inactiveTab}>
-          <Text style={styles.inactiveTabText}>Sign Up</Text>
-        </View>
-      </View>
-
-      <View style={styles.form}>
-        <Text style={styles.label}>E-mail</Text>
-        <TextInput
-          placeholder="Digite seu e-mail"
-          placeholderTextColor="#8e8e93"
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        <Text style={styles.label}>Senha</Text>
-        <TextInput
-          placeholder="Digite sua senha"
-          placeholderTextColor="#8e8e93"
-          secureTextEntry
-          style={styles.input}
-          value={senha}
-          onChangeText={setSenha}
-        />
-
-        <Text style={styles.label}>Confirmar Senha</Text>
-        <TextInput
-          placeholder="Confirme sua senha"
-          placeholderTextColor="#8e8e93"
-          secureTextEntry
-          style={styles.input}
-          value={confirmarSenha}
-          onChangeText={setConfirmarSenha}
-        />
-
-        <BotaoCad />
-      </View>
-
-      <View style={styles.circleDecoration} />
-    </View>
+    <SafeAreaView className="flex-1 items-center">
+      <KeyboardAvoidingView
+        className="flex-1 w-full items-center"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+      >
+        <ScrollView
+          className="w-full"
+          contentContainerClassName="items-center pb-8"
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text className="text-2xl mb-4">Cadastrar</Text>
+          <View className="gap-6">
+            <CampoDeTexto
+              label="E-mail"
+              value={email_usuario}
+              setValue={setEmailUsuario}
+              errorMessage="E-mail inválido"
+              placeholder="Digite o e-mail"
+              isError={isErrorInEmail}
+              textInputClassName="w-80"
+            />
+            <CampoDeTexto
+              label="Senha"
+              value={senha_usuario}
+              setValue={setSenhaUsuario}
+              errorMessage="Senha inválida"
+              placeholder="Digite sua senha"
+              isError={isErrorInSenha}
+              textInputClassName="w-80"
+            />
+            <CampoDeTexto
+              label="Confirme a senha"
+              value={confirmarSenha}
+              setValue={setConfirmarSenha}
+              errorMessage="As senhas devem ser iguais"
+              placeholder="Confirme sua senha"
+              isError={isErrorInConfirmarSenha}
+              textInputClassName="w-80"
+            />
+            <View className="flex-row justify-center">
+              <Botao
+                className="w-20"
+                children={
+                  <View className="justify-center items-center">
+                    <Text className="text-white text-xl">Criar</Text>
+                  </View>
+                }
+                disabled={
+                  isErrorInEmail ||
+                  isErrorInSenha ||
+                  isErrorInConfirmarSenha ||
+                  email_usuario === "" ||
+                  senha_usuario === "" ||
+                  confirmarSenha === ""
+                }
+                onPress={() => {
+                  onSubmit(email_usuario, senha_usuario);
+                }}
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    position: "relative",
-    paddingTop: 60,
-  },
-  cabecalho: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 24,
-    marginBottom: 20,
-  },
-  activeTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: "#008000",
-    paddingBottom: 4,
-  },
-  activeTabText: {
-    color: "#008000",
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  inactiveTab: {
-    paddingBottom: 4,
-  },
-  inactiveTabText: {
-    color: "#b0b0b0",
-    fontSize: 18,
-  },
-  form: {
-    paddingHorizontal: 20,
-    gap: 12,
-    zIndex: 2,
-  },
-  label: {
-    color: "#333333",
-    fontWeight: "500",
-  },
-  input: {
-    color: "#333333",
-    borderWidth: 1,
-    borderColor: "#2d8c66",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-  },
-  circleDecoration: {
-    position: "absolute",
-    bottom: -80,
-    right: -80,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: "#38ce8e",
-    opacity: 0.8,
-    zIndex: 1,
-  },
-});
-
-export default App;
+export default Cadastro;
