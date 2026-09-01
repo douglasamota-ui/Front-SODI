@@ -46,7 +46,7 @@ const App = () => {
     const resposta = await BasicSignin(email, senha);
     console.log(resposta)
     if (resposta == 200) {
-      Alert.alert('teste');
+      Alert.alert('SEJA BEM VINDO ✅');
       router.push("/home");
     } else {
       alert("Usuario ou senha incorretos");
@@ -55,14 +55,14 @@ const App = () => {
 
   return (
     <StyledLinearGradient
-      colors={["#7a28cb", "#494368"]}
+      colors={["#24ca85", "#24ca85"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       className="flex-1 justify-center items-center"
     >
-      <View className="bg-[#c299eb] p-6 rounded-2xl">
+      <View className="bg-[#bedbcf] p-6 rounded-2xl">
         <View className="mb-8 items-center">
-          <Text className="font-sans text-black text-2xl">Entrar</Text>
+          <Text className="font-sans text-black text-2xl">LOGIN</Text>
         </View>
         <View className="gap-6">
           <CampoDeTexto
@@ -84,10 +84,10 @@ const App = () => {
         </View>
         <View className="items-center mt-8">
           <Botao
-            className="w-20"
+            className="bg-[#24ca85] w-20"
             children={
-              <View className="justify-center items-center">
-                <Text className="text-white text-xl">Entrar</Text>
+              <View className=" justify-center items-center">
+                <Text className="color-[black] text-white text-xl">ENTRAR</Text>
               </View>
             }
             disabled={
@@ -103,8 +103,7 @@ const App = () => {
         </View>
         <View className="flex-row justify-center m-6">
           <Link href={"/cadastro"}>
-            <Text>Cadastre-se</Text>
-            
+            <Text>CADASTRA-SE</Text>
           </Link>
         </View>
       </View>
