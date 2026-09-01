@@ -1,126 +1,114 @@
-import React from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
-import { Image } from "expo-image";
 import Botao from "@/components/botao/botao";
-import { Link } from "expo-router";
+import CampoDeTexto from "@/components/CampodeTexto/CampodeTexto";
+import StyledLinearGradient from "@/components/StyledLinearGradient/StyledLinearGradient";
+import "@/global.css";
+import { BasicSignin } from "@/service/user.service";
+import { Link, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Alert, Text, View } from "react-native";
 
 const App = () => {
+  const router = useRouter();
+
+  const [email_usuario, setEmailUsuario] = useState<string>("");
+  const [senha_usuario, setSenhaUsuario] = useState<string>("");
+
+  const regex_email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const [isErrorInEmail, setIsErrorInEmail] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (email_usuario == "") {
+      setIsErrorInEmail(false);
+    } else {
+      if (!regex_email.test(email_usuario)) {
+        setIsErrorInEmail(true);
+      } else {
+        setIsErrorInEmail(false);
+      }
+    }
+  }, [email_usuario]);
+
+  const regex_senha = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  const [isErrorInSenha, setIsErrorInSenha] = useState<boolean>(false);
+  useEffect(() => {
+    if (senha_usuario == "") {
+      setIsErrorInSenha(false);
+    } else {
+      if (!regex_senha.test(senha_usuario)) {
+        setIsErrorInSenha(true);
+      } else {
+        setIsErrorInSenha(false);
+      }
+    }
+  }, [senha_usuario]);
+
+  const onSubmit = async (email: string, senha: string) => {
+    const resposta = await BasicSignin(email, senha);
+    console.log(resposta)
+    if (resposta == 200) {
+      Alert.alert('teste');
+      router.push("/home");
+    } else {
+      alert("Usuario ou senha incorretos");
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.cabecalho}>
-        <Image
-          source={require("@/assets/image/sodi_logo_preto.jpg")}
-          style={styles.logo}
-          contentFit="contain"
-        />
-      </View>
-
-      <View style={styles.tabContainer}>
-        <View style={styles.activeTab}>
-          <Text style={styles.activeTabText}>Conecte-se</Text>
+    <StyledLinearGradient
+      colors={["#7a28cb", "#494368"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      className="flex-1 justify-center items-center"
+    >
+      <View className="bg-[#c299eb] p-6 rounded-2xl">
+        <View className="mb-8 items-center">
+          <Text className="font-sans text-black text-2xl">Entrar</Text>
         </View>
-        <View style={styles.inactiveTab}>
-          <Text style={styles.inactiveTabText}>Inscrever-se</Text>
+        <View className="gap-6">
+          <CampoDeTexto
+            label="E-mail"
+            value={email_usuario}
+            setValue={setEmailUsuario}
+            errorMessage="E-mail invalido"
+            placeholder="Digite o e-mail"
+            isError={isErrorInEmail}
+          />
+          <CampoDeTexto
+            label="Senha"
+            value={senha_usuario}
+            setValue={setSenhaUsuario}
+            errorMessage="Senha invalida"
+            placeholder="Digite sua senha"
+            isError={isErrorInSenha}
+          />
         </View>
-      </View>
-
-      {/* Formulário */}
-      <View style={styles.form}>
-        <Text style={styles.label}>E-mail</Text>
-        <TextInput
-          placeholder="Digite seu e-mail"
-          placeholderTextColor="#8e8e93"
-          style={styles.input}
-        />
-
-        <Text style={styles.label}>Senha</Text>
-        <TextInput
-          placeholder="Digite sua senha"
-          placeholderTextColor="#8e8e93"
-          secureTextEntry
-          style={styles.input}
-        />
- 
-        <Botao />
-           <Link href={"/cadastro"}>
+        <View className="items-center mt-8">
+          <Botao
+            className="w-20"
+            children={
+              <View className="justify-center items-center">
+                <Text className="text-white text-xl">Entrar</Text>
+              </View>
+            }
+            disabled={
+              isErrorInEmail ||
+              isErrorInSenha ||
+              email_usuario == "" ||
+              senha_usuario == ""
+                ? true
+                : false
+            }
+            onPress={() => onSubmit(email_usuario, senha_usuario)}
+          />
+        </View>
+        <View className="flex-row justify-center m-6">
+          <Link href={"/cadastro"}>
             <Text>Cadastre-se</Text>
+            
           </Link>
+        </View>
       </View>
-
-      <View style={styles.circleDecoration} />
-    </View>
+    </StyledLinearGradient>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    position: "relative",
-    paddingTop: 60,
-  },
-  cabecalho: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 24,
-    marginBottom: 20,
-  },
-  activeTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: "#008000",
-    paddingBottom: 4,
-  },
-  activeTabText: {
-    color: "#008000",
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  inactiveTab: {
-    paddingBottom: 4,
-  },
-  inactiveTabText: {
-    color: "#b0b0b0",
-    fontSize: 18,
-  },
-  form: {
-    paddingHorizontal: 20,
-    gap: 12,
-    zIndex: 2,
-  },
-  label: {
-    color: "#333333",
-    fontWeight: "500",
-  },
-  input: {
-    color: "#333333",
-    borderWidth: 1,
-    borderColor: "#2d8c66",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-  },
-  circleDecoration: {
-    position: "absolute",
-    bottom: -80,
-    right: -80,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: "#38ce8e",
-    opacity: 0.8,
-    zIndex: 1,
-  },
-});
-
 export default App;
