@@ -73,7 +73,7 @@ const Cadastro = () => {
           contentContainerClassName="items-center pb-8"
           keyboardShouldPersistTaps="handled"
         >
-          <Text className="text-2xl mb-4">Cadastrar</Text>
+          <Text className="bg-[#fffff] text-2xl mb-4">CADASTRA-SE</Text>
           <View className="gap-6">
             <CampoDeTexto
               label="E-mail"
@@ -102,12 +102,12 @@ const Cadastro = () => {
               isError={isErrorInConfirmarSenha}
               textInputClassName="w-80"
             />
-            <View className="flex-row justify-center">
+            <View className="bg-[#24ca85] flex-row justify-center">
               <Botao
                 className="w-20"
                 children={
                   <View className="justify-center items-center">
-                    <Text className="text-white text-xl">Criar</Text>
+                    <Text className=" text-white text-xl">CRIAR</Text>
                   </View>
                 }
                 disabled={
