@@ -38,7 +38,7 @@ const Administracao = () => {
 
       </View>
 
-      {/* MENU HAMBÚRGUER */}
+      {/* MENU HAMBÚRGUER BRUNO */}
       {menuAberto && (
         <View className="absolute left-0 top-28 z-50 w-72 rounded-br-2xl rounded-tr-2xl border border-[#DDE5E0] bg-white p-5 shadow-lg">
 
