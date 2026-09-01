@@ -8,196 +8,179 @@ const Administracao = () => {
   const [menuAberto, setMenuAberto] = useState<boolean>(false);
 
   return (
-    <View className="flex-1 bg-white pt-12">
+    <View className="flex-1 bg-[#F5F7F6] pt-12">
 
-      <View className="w-full flex-row items-center justify-between border-b border-gray-200 pl-6">
+      {/* HEADER */}
+      <View className="w-full flex-row items-center justify-between border-b border-[#006B32] bg-[#00843D] pl-6">
+
         <Pressable
           onPress={() => setMenuAberto(!menuAberto)}
+          className="p-2"
         >
-          <Text className="menu">☰</Text>
+          <Text className="text-3xl text-white">
+            ☰
+          </Text>
         </Pressable>
 
-       
-          <Image
-            source={require("@/assets/image/sodi_logo_preto.jpg")}
-            style={styles.logo}
-            contentFit="contain"
-          />
-     
+        <Image
+          source={require("@/assets/image/sodi_logo_preto.jpg")}
+          style={styles.logo}
+          contentFit="contain"
+        />
 
         <Pressable className="p-2">
-
           <Image
             source={require("@/assets/image/imgdeperf.png")}
             style={styles.logo}
             contentFit="contain"
           />
-
-
         </Pressable>
+
       </View>
 
-
+      {/* MENU HAMBÚRGUER BRUNO */}
       {menuAberto && (
-        <View className="absolute top-16 left-0 z-50 w-72 bg-white p-5 border border-gray-300 shadow-lg">
-          <Text className="text-xl font-bold mb-5 -[#136d09] bg-blue-500 ">Menu</Text>
+        <View className="absolute left-0 top-28 z-50 w-72 rounded-br-2xl rounded-tr-2xl border border-[#DDE5E0] bg-white p-5 shadow-lg">
 
-          <Pressable className="py-4 border-b border-gray-200">
-            <Text className="text-base font-semibold ">Administração</Text>
+          <Text className="mb-5 text-xl font-bold text-[#00843D]">
+            Menu
+          </Text>
+
+          <Pressable
+            onPress={() => setMenuAberto(false)}
+            className="border-b border-[#E1E5E3] py-4"
+          >
+            <Text className="text-base font-bold text-[#00843D]">
+              Administração
+            </Text>
           </Pressable>
 
-          <Pressable className="py-4 border-b border-gray-200">
-            <Text className="text-base  ">Ordem de Serviço</Text>
+          <Pressable className="border-b border-[#E1E5E3] py-4">
+            <Text className="text-base text-[#3F4442]">
+              Ordem de Serviço
+            </Text>
           </Pressable>
 
           <Pressable className="py-4">
-            <Text className="text-base">Máquinas</Text>
+            <Text className="text-base text-[#3F4442]">
+              Máquinas
+            </Text>
           </Pressable>
+
         </View>
       )}
 
-
-      <ScrollView className="flex-1">
+      {/* CONTEÚDO */}
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+      >
         <View className="p-5">
 
+          {/* TÍTULO */}
           <View className="mb-6">
-            <Text className="text-3xl font-bold text-gray-900">
+            <Text className="text-3xl font-bold text-[#202124]">
               Administração
             </Text>
-            <Text className="text-base text-gray-500 mt-1">
+
+            <Text className="mt-1 text-base text-[#73777A]">
               Visão geral do sistema
             </Text>
           </View>
 
-
+          {/* CARDS */}
           <View className="gap-4">
-            <View className="rounded-2xl p-5 border border-gray-200 bg-gray-50">
-              <Text className="text-base font-medium text-gray-700">
+
+            {/* ORDENS ABERTAS */}
+            <View className="rounded-2xl border border-[#E1E5E3] bg-white p-5">
+
+              <Text className="text-base font-semibold text-[#3F4442]">
                 Ordens Abertas
               </Text>
-              <Text className="text-4xl font-bold text-gray-900 mt-2">0</Text>
-              <Text className="text-sm text-gray-500 mt-1">
+
+              <Text className="mt-2 text-4xl font-bold text-[#00843D]">
+                0
+              </Text>
+
+              <Text className="mt-1 text-sm text-[#73777A]">
                 Ordens aguardando atendimento
               </Text>
+
             </View>
 
-            <View className="rounded-2xl p-5 border border-gray-200 bg-gray-50">
-              <Text className="text-base font-medium text-gray-700">
+            {/* EM MANUTENÇÃO */}
+            <View className="rounded-2xl border border-[#E1E5E3] bg-white p-5">
+
+              <Text className="text-base font-semibold text-[#3F4442]">
                 Em Manutenção
               </Text>
-              <Text className="text-4xl font-bold text-gray-900 mt-2">0</Text>
-              <Text className="text-sm text-gray-500 mt-1">
+
+              <Text className="mt-2 text-4xl font-bold text-[#00843D]">
+                0
+              </Text>
+
+              <Text className="mt-1 text-sm text-[#73777A]">
                 Ordens em andamento
               </Text>
+
             </View>
 
-            <View className="rounded-2xl p-5 border border-gray-200 bg-gray-50">
-              <Text className="text-base font-medium text-gray-700">
+            {/* CONCLUÍDAS */}
+            <View className="rounded-2xl border border-[#E1E5E3] bg-white p-5">
+
+              <Text className="text-base font-semibold text-[#3F4442]">
                 Ordens Concluídas
               </Text>
-              <Text className="text-4xl font-bold text-gray-900 mt-2">0</Text>
-              <Text className="text-sm text-gray-500 mt-1">
+
+              <Text className="mt-2 text-4xl font-bold text-[#00843D]">
+                0
+              </Text>
+
+              <Text className="mt-1 text-sm text-[#73777A]">
                 Ordens finalizadas
               </Text>
+
             </View>
+
           </View>
 
+          {/* CADASTRO DE MÁQUINAS */}
+          <View className="mt-6 rounded-2xl border border-[#E1E5E3] bg-white p-5">
 
-          <View className="rounded-2xl p-5 mt-6 border border-gray-200 bg-gray-50">
-            <Text className="text-xl font-bold text-gray-900">
+            <Text className="text-xl font-bold text-[#202124]">
               Cadastro de Máquinas
             </Text>
-            <Text className="text-sm text-gray-500 mt-2">
+
+            <Text className="mt-2 text-sm text-[#73777A]">
               Gerencie as máquinas cadastradas no sistema.
             </Text>
 
-            <View className="items-center mt-5">
-              <Pressable className="w-full">
-                <Text className="text-base font-bold text-center">
+            <View className="mt-5">
+
+              <Pressable className="w-full rounded-xl bg-[#00843D] py-4 active:opacity-80">
+
+                <Text className="text-center text-base font-bold text-white">
                   + Adicionar Máquina
                 </Text>
+
               </Pressable>
+
             </View>
+
           </View>
+
         </View>
       </ScrollView>
+
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    position: "relative",
-    paddingTop: 60,
-  },
-  cabecalho: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
   logo: {
     width: 60,
     height: 60,
-  
-
   },
-  tabContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 24,
-    marginBottom: 20,
-  },
-  activeTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: "#008000",
-    paddingBottom: 4,
-  },
-  activeTabText: {
-    color: "#008000",
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  inactiveTab: {
-    paddingBottom: 4,
-  },
-  inactiveTabText: {
-    color: "#b0b0b0",
-    fontSize: 18,
-  },
-  form: {
-    paddingHorizontal: 20,
-    gap: 12,
-    zIndex: 2,
-  },
-  label: {
-    color: "#333333",
-    fontWeight: "500",
-  },
-  input: {
-    color: "#333333",
-    borderWidth: 1,
-    borderColor: "#2d8c66",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-  },
-  circleDecoration: {
-    position: "absolute",
-    bottom: -80,
-    right: -80,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: "#38ce8e",
-    opacity: 0.8,
-    zIndex: 1,
-  },
-
-
-
 });
+
 export default Administracao;
