@@ -1,8 +1,8 @@
 import { cn } from "@/lib/cn";
 import React from "react";
-import { Text, TextInput, View } from "react-native";
+import { Text, TextInput, TextInputProps, View } from "react-native";
 
-type CampoDeTextoProps = {
+type CampoDeTextoProps = TextInputProps & {
   label: string;
   placeholder?: string;
   viewClassName?: string;
@@ -24,6 +24,7 @@ const CampoDeTexto = ({
   errorMessage = "",
   isError,
   setValue,
+  ...rest
 }: CampoDeTextoProps) => {
   return (
     <View>
@@ -39,6 +40,7 @@ const CampoDeTexto = ({
             "bg-white px-4 w-72 text-lg rounded-xl h-16",
             textInputClassName,
           )}
+          {...rest}
         />
       </View>
       {isError ? (
@@ -47,4 +49,5 @@ const CampoDeTexto = ({
     </View>
   );
 };
+
 export default CampoDeTexto;

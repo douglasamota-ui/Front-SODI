@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useRouter, useFocusEffect } from "expo-router";
 import ComponentsHome from "@/components/ComponentsHome/ComponentsHome";
+import SeletorDeImagem from "@/components/SeletorDeImagem/SeletorDeImagem";
 import * as ImagePicker from "expo-image-picker";
 import api from "@/lib/axios.config";
 
@@ -15,7 +16,6 @@ export type Ordem = {
   descricao_problema?: string;
   marca?: string;
   nome_mecanico?: string;
-  imagem?: string | null;
   id_usuario?: string | number;
   status_ia?: string;
 };
@@ -29,6 +29,10 @@ const Home = () => {
   const [carregando, setCarregando] = useState<boolean>(true);
   const [clicouSalvar, setClicouSalvar] = useState<boolean>(false);
 
+  const [imagem, setImagem] = useState<ImagePicker.ImagePickerAsset | null>(
+    null,
+  );
+
   const [form, setForm] = useState<Ordem>({
     id_maquinas: "",
     status: "",
@@ -36,7 +40,6 @@ const Home = () => {
     descricao_problema: "",
     marca: "",
     nome_mecanico: "",
-    imagem: null,
     id_usuario: "",
     status_ia: "Pendente",
   });
@@ -70,30 +73,6 @@ const Home = () => {
     router.replace("/");
   }
 
-  async function selecionarImagem() {
-    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissao.granted) {
-      alert("Permissão: É necessário permitir o acesso à galeria.");
-      return;
-    }
-
-    const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.1,
-      base64: true,
-    });
-
-    if (!resultado.canceled && resultado.assets[0]) {
-      const asset = resultado.assets[0];
-      const imagemFinal = asset.base64
-        ? `data:image/jpeg;base64,${asset.base64}`
-        : asset.uri;
-      setForm((prev) => ({ ...prev, imagem: imagemFinal }));
-    }
-  }
-
   async function handleSalvar() {
     setClicouSalvar(true);
 
@@ -115,17 +94,16 @@ const Home = () => {
       descricao_problema: form.descricao_problema,
       marca: form.marca,
       nome_mecanico: form.nome_mecanico,
-      imagem: form.imagem,
-      id_usuario: Number(localStorage.getItem('id_user')),
+      id_usuario: Number(localStorage.getItem("id_user")),
       status_ia: form.status_ia,
     };
 
     console.log(novaOrdem);
-    alert('');
+    alert("");
 
     try {
       const resposta = await api.post("/ordensservico", novaOrdem);
-      if(resposta.status==201){
+      if (resposta.status === 201) {
         setOrdens((prev) => [novaOrdem, ...prev]);
         alert("Sucesso: Ordem criada com sucesso!");
         await carregarOrdens();
@@ -136,6 +114,7 @@ const Home = () => {
     } finally {
       setMostrarForm(false);
       setClicouSalvar(false);
+      setImagem(null);
       setForm({
         id_maquinas: "",
         status: "",
@@ -143,7 +122,6 @@ const Home = () => {
         descricao_problema: "",
         marca: "",
         nome_mecanico: "",
-        imagem: null,
         id_usuario: "",
         status_ia: "Pendente",
       });
@@ -173,7 +151,7 @@ const Home = () => {
       <View className="bg-[#24ca85] pt-2 pb-4 px-4 flex-row items-center justify-between gap-3">
         <Image
           source={require("@/assets/image/sodi_logo_preto.jpg")}
-          className="w-10 h-10 rounded-full"
+          className="w-14 h-14 rounded-full"
           contentFit="contain"
         />
 
@@ -184,7 +162,7 @@ const Home = () => {
             placeholder="Buscar ordem..."
             placeholderTextColor="#6B7280"
             underlineColorAndroid="transparent"
-            className="flex-1 text-sm text-black h-full"
+            className="flex-1 text-sm text-black h-full focus:outline-none"
           />
         </View>
 
@@ -305,43 +283,13 @@ const Home = () => {
                       </Text>
                     )}
 
-                    <View className="w-full gap-1 mb-3">
-                      <Text className="text-sm font-bold text-gray-700">
-                        Imagem do Problema
-                      </Text>
-                      <Pressable
-                        onPress={selecionarImagem}
-                        className="w-full rounded-xl border border-gray-300 bg-white px-[14px] py-[10px] flex-row justify-between items-center"
-                      >
-                        <Text
-                          className={`text-[15px] ${
-                            form.imagem ? "text-gray-800" : "text-gray-400"
-                          }`}
-                        >
-                          {form.imagem
-                            ? "Foto selecionada"
-                            : "Anexar foto da máquina..."}
-                        </Text>
-                      </Pressable>
-
-                      {form.imagem && (
-                        <View className="mt-2 relative">
-                          <Image
-                            source={{ uri: form.imagem }}
-                            className="w-full h-40 rounded-xl"
-                            contentFit="cover"
-                          />
-                          <Pressable
-                            onPress={() => setForm({ ...form, imagem: null })}
-                            className="absolute top-2 right-2 bg-white rounded-full px-2 py-1"
-                          >
-                            <Text className="text-red-500 font-bold text-xs">
-                              Remover
-                            </Text>
-                          </Pressable>
-                        </View>
-                      )}
-                    </View>
+                    <SeletorDeImagem
+                      label="Imagem do Problema"
+                      value={imagem}
+                      setValue={setImagem}
+                      isError={false}
+                      errorMessage="Selecione uma imagem da máquina"
+                    />
 
                     <View className="flex-row justify-between gap-3 mt-3">
                       <Pressable
@@ -356,6 +304,7 @@ const Home = () => {
                         onPress={() => {
                           setMostrarForm(false);
                           setClicouSalvar(false);
+                          setImagem(null);
                         }}
                         className="flex-1 bg-[#4A4A4A] py-3 rounded-xl items-center"
                       >
@@ -370,13 +319,6 @@ const Home = () => {
             }
             renderItem={({ item: ordem }) => (
               <View className="bg-white rounded-2xl p-4 mb-4 border border-gray-200">
-                {ordem.imagem && (
-                  <Image
-                    source={{ uri: ordem.imagem }}
-                    className="w-full h-40 rounded-xl mb-3"
-                    contentFit="cover"
-                  />
-                )}
                 <Text className="text-gray-800 text-sm my-[2px]">
                   <Text className="font-bold">Máquina:</Text>{" "}
                   {ordem.id_maquinas || "N/A"}
