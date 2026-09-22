@@ -1,22 +1,23 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  ActivityIndicator,
-  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
 
 import "@/global.css";
-
-const API_URL = "http://192.168.1.30:3000/ordensservico";
+import api from "@/lib/axios.config";
+import { obterUserId } from "@/lib/secureStore";
 
 type Ordem = {
   id_ordem: number;
@@ -32,76 +33,103 @@ type Ordem = {
 const Administracao = () => {
   const [menuAberto, setMenuAberto] = useState<boolean>(false);
   const [modalOrdem, setModalOrdem] = useState<boolean>(false);
-  const [carregando, setCarregando] = useState<boolean>(false);
+
+  const [carregando, setCarregando] = useState<boolean>(true);
+  const [atualizando, setAtualizando] = useState<boolean>(false);
+  const [enviando, setEnviando] = useState<boolean>(false);
 
   const [maquinaId, setMaquinaId] = useState<string>("");
   const [descricao, setDescricao] = useState<string>("");
 
   const [ordens, setOrdens] = useState<Ordem[]>([]);
 
-  // BUSCAR ORDENS NO BANCO
-  const carregarOrdens = async () => {
-    try {
-      setCarregando(true);
-      const response = await fetch(API_URL);
-      if (!response.ok) throw new Error("Erro ao carregar dados do banco");
+  const carregarOrdens = useCallback(async () => {
+    const { data } = await api.get<Ordem[]>("/ordensservico");
+    setOrdens(data);
+  }, []);
 
-      const data = await response.json();
-      setOrdens(data);
+  useFocusEffect(
+    useCallback(() => {
+      carregarOrdens()
+        .catch((error) => {
+          console.error(error);
+          Alert.alert(
+            "Erro",
+            "Não foi possível carregar as ordens de serviço."
+          );
+        })
+        .finally(() => setCarregando(false));
+    }, [carregarOrdens])
+  );
+
+  const aoAtualizar = async () => {
+    setAtualizando(true);
+
+    try {
+      await carregarOrdens();
     } catch (error) {
       console.error(error);
-      Alert.alert("Erro", "Não foi possível carregar as ordens de serviço.");
+      Alert.alert(
+        "Erro",
+        "Não foi possível atualizar as ordens de serviço."
+      );
     } finally {
-      setCarregando(false);
+      setAtualizando(false);
     }
   };
 
-  useEffect(() => {
-    carregarOrdens();
-  }, []);
-
-  // CADASTRAR NOVA ORDEM NO BANCO
   const adicionarOrdem = async () => {
     if (!maquinaId.trim() || !descricao.trim()) {
-      Alert.alert("Atenção", "Preencha o ID da máquina e a descrição do problema!");
+      Alert.alert(
+        "Atenção",
+        "Preencha o ID da máquina e a descrição do problema!"
+      );
       return;
     }
 
+    const userId = await obterUserId();
+
+    if (!userId) {
+      Alert.alert("Erro", "Usuário não encontrado.");
+      return;
+    }
+
+    const novaOrdem = {
+      id_maquinas: Number(maquinaId),
+      descricao_problema: descricao,
+      data_abertura: new Date().toISOString().split("T")[0],
+      status: "Aberta",
+      id_usuario: Number(userId),
+      nome_mecanico: "A definir",
+      status_ia: "Pendente",
+    };
+
     try {
-      setCarregando(true);
+      setEnviando(true);
 
-      const novaOrdemPayload = {
-        id_maquinas: Number(maquinaId),
-        descricao_problema: descricao,
-        data_abertura: new Date().toISOString().split("T")[0],
-        status: "Aberta",
-        id_usuario: 47,
-        nome_mecanico: "A definir",
-        status_ia: "Pendente",
-      };
+      const { data } = await api.post<Ordem>(
+        "/ordensservico",
+        novaOrdem
+      );
 
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(novaOrdemPayload),
-      });
+      setOrdens((prev) => [...prev, data]);
 
-      if (!response.ok) throw new Error("Erro ao salvar no banco");
-
-      const ordemSalva: Ordem = await response.json();
-
-      setOrdens((prev) => [...prev, ordemSalva]);
       setMaquinaId("");
       setDescricao("");
       setModalOrdem(false);
-      Alert.alert("Sucesso", "Ordem de serviço cadastrada com sucesso!");
+
+      Alert.alert(
+        "Sucesso",
+        "Ordem de serviço cadastrada com sucesso!"
+      );
     } catch (error) {
       console.error(error);
-      Alert.alert("Erro", "Falha ao salvar a ordem de serviço.");
+      Alert.alert(
+        "Erro",
+        "Falha ao salvar a ordem de serviço."
+      );
     } finally {
-      setCarregando(false);
+      setEnviando(false);
     }
   };
 
@@ -115,15 +143,26 @@ const Administracao = () => {
     console.log("Logout clicado");
   };
 
-  const ordensAbertas = ordens.filter((o) => o.status === "Aberta").length;
-  const ordensManutencao = ordens.filter((o) => o.status === "Em manutenção").length;
-  const ordensConcluidas = ordens.filter((o) => o.status === "Concluída").length;
+  const ordensAbertas = ordens.filter(
+    (o) => o.status === "Aberta"
+  ).length;
+
+  const ordensManutencao = ordens.filter(
+    (o) => o.status === "Em manutenção"
+  ).length;
+
+  const ordensConcluidas = ordens.filter(
+    (o) => o.status === "Concluída"
+  ).length;
 
   return (
     <View className="flex-1 bg-[#F5F7F6] pt-12">
       {/* HEADER */}
       <View className="w-full flex-row items-center justify-between bg-[#24ca85] px-4 py-3 shadow-sm">
-        <Pressable onPress={() => setMenuAberto(!menuAberto)} className="p-2 active:opacity-70">
+        <Pressable
+          onPress={() => setMenuAberto(!menuAberto)}
+          className="p-2 active:opacity-70"
+        >
           <Text className="text-3xl text-white">☰</Text>
         </Pressable>
 
@@ -134,8 +173,15 @@ const Administracao = () => {
         />
 
         <View className="flex-row items-center gap-1">
-          <Pressable onPress={handleLogout} className="p-2 active:opacity-70">
-            <MaterialIcons name="logout" size={26} color="white" />
+          <Pressable
+            onPress={handleLogout}
+            className="p-2 active:opacity-70"
+          >
+            <MaterialIcons
+              name="logout"
+              size={26}
+              color="white"
+            />
           </Pressable>
 
           <Pressable className="p-2 active:opacity-70">
@@ -151,82 +197,147 @@ const Administracao = () => {
       {/* MENU LATERAL */}
       {menuAberto && (
         <View className="absolute left-0 top-28 z-50 w-72 rounded-br-2xl rounded-tr-2xl border border-[#DDE5E0] bg-white p-5 shadow-2xl">
-          <Text className="mb-4 text-xl font-bold text-[#24ca85]">Menu</Text>
+          <Text className="mb-4 text-xl font-bold text-[#24ca85]">
+            Menu
+          </Text>
 
-          <Pressable onPress={() => setMenuAberto(false)} className="border-b border-[#E1E5E3] py-3">
-            <Text className="text-base font-bold text-[#24ca85]">Administração</Text>
+          <Pressable
+            onPress={() => setMenuAberto(false)}
+            className="border-b border-[#E1E5E3] py-3"
+          >
+            <Text className="text-base font-bold text-[#24ca85]">
+              Administração
+            </Text>
           </Pressable>
 
           <Pressable className="border-b border-[#E1E5E3] py-3">
-            <Text className="text-base text-[#3F4442]">Ordem de Serviço</Text>
+            <Text className="text-base text-[#3F4442]">
+              Ordem de Serviço
+            </Text>
           </Pressable>
 
           <Pressable className="border-b border-[#E1E5E3] py-3">
-            <Text className="text-base text-[#3F4442]">Máquinas</Text>
+            <Text className="text-base text-[#3F4442]">
+              Máquinas
+            </Text>
           </Pressable>
 
           <Pressable className="border-b border-[#E1E5E3] py-3">
-            <Text className="text-base text-[#3F4442]">Funcionários</Text>
+            <Text className="text-base text-[#3F4442]">
+              Funcionários
+            </Text>
           </Pressable>
 
           <Pressable className="py-3">
-            <Text className="text-base text-[#3F4442]">Histórico</Text>
+            <Text className="text-base text-[#3F4442]">
+              Histórico
+            </Text>
           </Pressable>
         </View>
       )}
 
       {/* CONTEÚDO PRINCIPAL */}
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={atualizando}
+            onRefresh={aoAtualizar}
+          />
+        }
+      >
         <View className="p-5">
           <View className="mb-6">
-            <Text className="text-3xl font-bold text-[#202124]">Administração</Text>
-            <Text className="mt-1 text-base text-[#73777A]">Visão geral do sistema</Text>
+            <Text className="text-3xl font-bold text-[#202124]">
+              Administração
+            </Text>
+
+            <Text className="mt-1 text-base text-[#73777A]">
+              Visão geral do sistema
+            </Text>
           </View>
 
           {/* CARDS RESUMO */}
           <View className="gap-4">
             <View className="rounded-2xl bg-[#F88C38] p-5 shadow-sm">
-              <Text className="text-lg font-bold text-white">Ordens Abertas</Text>
-              <Text className="mt-2 text-4xl font-extrabold text-white">{ordensAbertas}</Text>
-              <Text className="mt-1 text-sm text-white/80">Ordens aguardando atendimento</Text>
+              <Text className="text-lg font-bold text-white">
+                Ordens Abertas
+              </Text>
+
+              <Text className="mt-2 text-4xl font-extrabold text-white">
+                {ordensAbertas}
+              </Text>
+
+              <Text className="mt-1 text-sm text-white/80">
+                Ordens aguardando atendimento
+              </Text>
             </View>
 
             <View className="rounded-2xl bg-[#0081C9] p-5 shadow-sm">
-              <Text className="text-lg font-bold text-white">Em Manutenção</Text>
-              <Text className="mt-2 text-4xl font-extrabold text-white">{ordensManutencao}</Text>
-              <Text className="mt-1 text-sm text-white/80">Ordens em andamento</Text>
+              <Text className="text-lg font-bold text-white">
+                Em Manutenção
+              </Text>
+
+              <Text className="mt-2 text-4xl font-extrabold text-white">
+                {ordensManutencao}
+              </Text>
+
+              <Text className="mt-1 text-sm text-white/80">
+                Ordens em andamento
+              </Text>
             </View>
 
             <View className="rounded-2xl bg-[#006B38] p-5 shadow-sm">
-              <Text className="text-lg font-bold text-white">Concluídas</Text>
-              <Text className="mt-2 text-4xl font-extrabold text-white">{ordensConcluidas}</Text>
-              <Text className="mt-1 text-sm text-white/80">Ordens finalizadas</Text>
+              <Text className="text-lg font-bold text-white">
+                Concluídas
+              </Text>
+
+              <Text className="mt-2 text-4xl font-extrabold text-white">
+                {ordensConcluidas}
+              </Text>
+
+              <Text className="mt-1 text-sm text-white/80">
+                Ordens finalizadas
+              </Text>
             </View>
 
             <View className="rounded-2xl bg-white p-5 shadow-sm">
-              <Text className="text-xl font-bold text-[#202124]">Ordem de Serviço</Text>
-              <Text className="mt-1 text-sm text-[#73777A]">Cadastre uma nova ordem de serviço.</Text>
+              <Text className="text-xl font-bold text-[#202124]">
+                Ordem de Serviço
+              </Text>
+
+              <Text className="mt-1 text-sm text-[#73777A]">
+                Cadastre uma nova ordem de serviço.
+              </Text>
 
               <Pressable
                 onPress={() => setModalOrdem(true)}
                 className="mt-5 rounded-xl bg-[#24ca85] py-3.5 active:opacity-90"
               >
-                <Text className="text-center text-base font-bold text-white">+ Adicionar Ordem</Text>
+                <Text className="text-center text-base font-bold text-white">
+                  + Adicionar Ordem
+                </Text>
               </Pressable>
             </View>
           </View>
 
           {/* LISTA DE ORDENS CADASTRADAS */}
-          {carregando && !modalOrdem ? (
-            <ActivityIndicator size="large" color="#24ca85" className="mt-8" />
+          {carregando ? (
+            <ActivityIndicator
+              size="large"
+              className="mt-8"
+            />
           ) : (
             ordens.length > 0 && (
               <View className="mt-8">
-                <Text className="mb-4 text-2xl font-bold text-[#202124]">Ordens cadastradas</Text>
+                <Text className="mb-4 text-2xl font-bold text-[#202124]">
+                  Ordens cadastradas
+                </Text>
 
                 <FlatList
                   data={ordens}
-                  keyExtractor={(item) => item.id_ordem.toString()}
+                  keyExtractor={(item) => String(item.id_ordem)}
                   scrollEnabled={false}
                   renderItem={({ item: ordem }) => (
                     <View className="mb-3 rounded-2xl bg-white p-4 shadow-sm">
@@ -236,7 +347,9 @@ const Administracao = () => {
                         </Text>
 
                         <View className="rounded-full bg-[#FFF1E6] px-3 py-1">
-                          <Text className="text-sm font-bold text-[#F88C38]">{ordem.status}</Text>
+                          <Text className="text-sm font-bold text-[#F88C38]">
+                            {ordem.status}
+                          </Text>
                         </View>
                       </View>
 
@@ -266,13 +379,19 @@ const Administracao = () => {
       {modalOrdem && (
         <View className="absolute inset-0 z-50 items-center justify-center bg-black/50 px-5">
           <View className="w-full rounded-3xl bg-white p-6">
-            <Text className="text-2xl font-bold text-[#202124]">Nova Ordem</Text>
-            <Text className="mt-1 text-sm text-[#73777A]">Preencha os dados da ordem.</Text>
+            <Text className="text-2xl font-bold text-[#202124]">
+              Nova Ordem
+            </Text>
+
+            <Text className="mt-1 text-sm text-[#73777A]">
+              Preencha os dados da ordem.
+            </Text>
 
             {/* ID MÁQUINA */}
             <Text className="mt-6 mb-2 text-base font-bold text-[#3F4442]">
               ID da Máquina
             </Text>
+
             <TextInput
               value={maquinaId}
               onChangeText={setMaquinaId}
@@ -285,11 +404,12 @@ const Administracao = () => {
             <Text className="mt-5 mb-2 text-base font-bold text-[#3F4442]">
               Descrição do problema
             </Text>
+
             <TextInput
               value={descricao}
               onChangeText={setDescricao}
               placeholder="Digite o problema encontrado"
-              multiline
+              multiline={true}
               numberOfLines={4}
               textAlignVertical="top"
               className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base"
@@ -300,21 +420,25 @@ const Administracao = () => {
             <View className="mt-6 flex-row gap-3">
               <Pressable
                 onPress={cancelarOrdem}
-                disabled={carregando}
+                disabled={enviando}
                 className="flex-1 rounded-xl border border-[#DDE5E0] py-3.5"
               >
-                <Text className="text-center font-bold text-[#73777A]">Cancelar</Text>
+                <Text className="text-center font-bold text-[#73777A]">
+                  Cancelar
+                </Text>
               </Pressable>
 
               <Pressable
                 onPress={adicionarOrdem}
-                disabled={carregando}
+                disabled={enviando}
                 className="flex-1 rounded-xl bg-[#24ca85] py-3.5"
               >
-                {carregando ? (
+                {enviando ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-center font-bold text-white">Adicionar</Text>
+                  <Text className="text-center font-bold text-white">
+                    Adicionar
+                  </Text>
                 )}
               </Pressable>
             </View>
@@ -330,6 +454,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
   },
+
   textArea: {
     height: 100,
   },
