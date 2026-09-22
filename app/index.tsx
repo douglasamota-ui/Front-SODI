@@ -3,11 +3,21 @@ import CampoDeTexto from "@/components/CampodeTexto/CampodeTexto";
 import StyledLinearGradient from "@/components/StyledLinearGradient/StyledLinearGradient"; 
 import "@/global.css"; 
 import { BasicSignin } from "@/service/user.service"; 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, useRouter } from "expo-router"; 
 import React, { useEffect, useState } from "react"; 
 import { Alert, Text, View, StyleSheet } from "react-native"; 
 import { Image } from "expo-image"; 
- 
+
+
+interface SigninResponse {
+  status: number;
+  data: {
+    id_usuario: string;
+    [key: string]: any;
+  };
+}
+
 const App = () => { 
   const router = useRouter(); 
  
@@ -18,7 +28,7 @@ const App = () => {
   const [isErrorInEmail, setIsErrorInEmail] = useState<boolean>(false); 
  
   useEffect(() => { 
-    if (email_usuario == "") { 
+    if (email_usuario === "") { 
       setIsErrorInEmail(false); 
     } else { 
       if (!regex_email.test(email_usuario)) { 
@@ -31,8 +41,9 @@ const App = () => {
  
   const regex_senha = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/; 
   const [isErrorInSenha, setIsErrorInSenha] = useState<boolean>(false); 
+
   useEffect(() => { 
-    if (senha_usuario == "") { 
+    if (senha_usuario === "") { 
       setIsErrorInSenha(false); 
     } else { 
       if (!regex_senha.test(senha_usuario)) { 
@@ -43,24 +54,34 @@ const App = () => {
     } 
   }, [senha_usuario]); 
  
-const onSubmit = async (email: string, senha: string) => { 
-  const resposta = await BasicSignin(email, senha); 
+  const onSubmit = async (email: string, senha: string) => { 
+  try {
+    // Utilizando : any para evitar o conflito de tipos do TypeScript
+    const resposta: any = await BasicSignin(email, senha); 
  
-  console.log(resposta); 
+    console.log(resposta); 
  
-  const { status, data } = resposta; 
+    const { status, data } = resposta; 
  
-  console.log(status); 
-  console.log(data); 
+    console.log(status); 
+    console.log(data); 
  
-  if (status === 200) { 
-    Alert.alert("SEJA BEM VINDO ✅"); 
-    localStorage.setItem('id_user', data.id_usuario); 
-    router.push("/home"); 
-  } else { 
-    alert("Usuario ou senha incorretos"); 
-  } 
-}; 
+    if (status === 200) { 
+      Alert.alert("Sucesso", "SEJA BEM VINDO ✅"); 
+      
+      if (data?.id_usuario) {
+        await AsyncStorage.setItem("id_user", String(data.id_usuario)); 
+      }
+      
+      router.push("/home"); 
+    } else { 
+      Alert.alert("Erro", "Usuário ou senha incorretos"); 
+    } 
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Erro", "Ocorreu um erro ao tentar fazer login.");
+  }
+};
  
   return ( 
     <View className="flex-1 items-center"> 
@@ -88,7 +109,7 @@ const onSubmit = async (email: string, senha: string) => {
             label="E-mail" 
             value={email_usuario} 
             setValue={setEmailUsuario} 
-            errorMessage="E-mail invalido" 
+            errorMessage="E-mail inválido" 
             placeholder="Digite o e-mail" 
             isError={isErrorInEmail} 
             textInputClassName="w-80" 
@@ -97,7 +118,7 @@ const onSubmit = async (email: string, senha: string) => {
             label="Senha" 
             value={senha_usuario} 
             setValue={setSenhaUsuario} 
-            errorMessage="Senha invalida" 
+            errorMessage="Senha inválida" 
             placeholder="Digite sua senha" 
             isError={isErrorInSenha} 
             textInputClassName="w-80" 
@@ -115,10 +136,8 @@ const onSubmit = async (email: string, senha: string) => {
             disabled={ 
               isErrorInEmail || 
               isErrorInSenha || 
-              email_usuario == "" || 
-              senha_usuario == "" 
-                ? true 
-                : false 
+              email_usuario === "" || 
+              senha_usuario === "" 
             } 
             onPress={() => onSubmit(email_usuario, senha_usuario)} 
           /> 
@@ -126,7 +145,7 @@ const onSubmit = async (email: string, senha: string) => {
 
         <View className="flex-row justify-center m-6"> 
           <Link href={"/cadastro"}> 
-            <Text>CADASTRA-SE</Text> 
+            <Text>CADASTRE-SE</Text> 
           </Link> 
         </View> 
 
@@ -136,14 +155,14 @@ const onSubmit = async (email: string, senha: string) => {
 }; 
 
 const styles = StyleSheet.create({ 
- fundoVerde: {   
+  fundoVerde: {   
     position: "absolute",   
     width: 300,   
     height: 500, 
     right: -80,   
     top: "35%",   
     zIndex: -1,   
-  },
+  }, 
 
   logo: { 
     width: 120, 

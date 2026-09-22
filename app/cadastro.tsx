@@ -67,12 +67,12 @@ const Cadastro = () => {
    
     <SafeAreaView className="flex-1 items-center">   
        
-      <Image   
+      {/* <Image   
         source={require("@/assets/image/fundoverde.png")}   
         style={styles.fundoVerde}   
         contentFit="contain"   
       />   
-   
+    */}
       <KeyboardAvoidingView   
         className="flex-1 w-full items-center"   
         behavior={Platform.OS === "ios" ? "padding" : "height"}   
