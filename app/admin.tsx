@@ -41,7 +41,6 @@ const Administracao = () => {
   const [atualizando, setAtualizando] = useState<boolean>(false);
   const [enviando, setEnviando] = useState<boolean>(false);
 
-  // ESTADOS DOS CAMPOS DO FORMULÁRIO
   const [maquinaId, setMaquinaId] = useState<string>("");
   const [status, setStatus] = useState<string>("Aberta");
   const [dataAbertura, setDataAbertura] = useState<string>(
@@ -143,7 +142,8 @@ const Administracao = () => {
     const novaOrdem = {
       id_maquinas: Number(maquinaId),
       status: status.trim() || "Aberta",
-      data_abertura: dataAbertura.trim() || new Date().toISOString().split("T")[0],
+      data_abertura:
+        dataAbertura.trim() || new Date().toISOString().split("T")[0],
       descricao_problema: descricao,
       marca: marca.trim(),
       nome_mecanico: nomeMecanico.trim() || "A definir",
@@ -431,7 +431,10 @@ const Administracao = () => {
         <View className="absolute inset-0 z-50 bg-black/50">
           <ScrollView
             className="flex-1 px-5"
-            contentContainerStyle={{ py: 20, justifyContent: "center" }}
+            contentContainerStyle={{
+              paddingVertical: 20,
+              justifyContent: "center",
+            }}
             showsVerticalScrollIndicator={false}
           >
             <View className="w-full rounded-3xl bg-white p-6 my-auto">
@@ -545,7 +548,11 @@ const Administracao = () => {
                 onPress={tirarFoto}
                 className="mt-3 flex-row items-center gap-2 active:opacity-70"
               >
-                <MaterialIcons name="photo-camera" size={20} color="#73777A" />
+                <MaterialIcons
+                  name="photo-camera"
+                  size={20}
+                  color="#73777A"
+                />
                 <Text className="text-sm font-semibold text-[#73777A]">
                   Tirar foto
                 </Text>
