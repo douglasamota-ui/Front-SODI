@@ -14,6 +14,7 @@ import {
 import { Image } from "expo-image";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 import "@/global.css";
 import api from "@/lib/axios.config";
@@ -28,6 +29,8 @@ type Ordem = {
   id_maquinas: number;
   id_usuario: number;
   status_ia?: string;
+  marca?: string;
+  imagem?: string;
 };
 
 const Administracao = () => {
@@ -38,8 +41,16 @@ const Administracao = () => {
   const [atualizando, setAtualizando] = useState<boolean>(false);
   const [enviando, setEnviando] = useState<boolean>(false);
 
+  // ESTADOS DOS CAMPOS DO FORMULÁRIO
   const [maquinaId, setMaquinaId] = useState<string>("");
+  const [status, setStatus] = useState<string>("Aberta");
+  const [dataAbertura, setDataAbertura] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
   const [descricao, setDescricao] = useState<string>("");
+  const [marca, setMarca] = useState<string>("");
+  const [nomeMecanico, setNomeMecanico] = useState<string>("");
+  const [imagemUri, setImagemUri] = useState<string | null>(null);
 
   const [ordens, setOrdens] = useState<Ordem[]>([]);
 
@@ -78,6 +89,41 @@ const Administracao = () => {
     }
   };
 
+  // FUNÇÕES PARA IMAGEM
+  const selecionarImagem = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImagemUri(result.assets[0].uri);
+    }
+  };
+
+  const tirarFoto = async () => {
+    const { status: cameraStatus } =
+      await ImagePicker.requestCameraPermissionsAsync();
+
+    if (cameraStatus !== "granted") {
+      Alert.alert(
+        "Permissão necessária",
+        "É necessária a permissão de acesso à câmera para tirar fotos."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImagemUri(result.assets[0].uri);
+    }
+  };
+
   const adicionarOrdem = async () => {
     if (!maquinaId.trim() || !descricao.trim()) {
       Alert.alert(
@@ -96,11 +142,13 @@ const Administracao = () => {
 
     const novaOrdem = {
       id_maquinas: Number(maquinaId),
+      status: status.trim() || "Aberta",
+      data_abertura: dataAbertura.trim() || new Date().toISOString().split("T")[0],
       descricao_problema: descricao,
-      data_abertura: new Date().toISOString().split("T")[0],
-      status: "Aberta",
+      marca: marca.trim(),
+      nome_mecanico: nomeMecanico.trim() || "A definir",
+      imagem: imagemUri || "",
       id_usuario: Number(userId),
-      nome_mecanico: "A definir",
       status_ia: "Pendente",
     };
 
@@ -114,9 +162,7 @@ const Administracao = () => {
 
       setOrdens((prev) => [...prev, data]);
 
-      setMaquinaId("");
-      setDescricao("");
-      setModalOrdem(false);
+      cancelarOrdem();
 
       Alert.alert(
         "Sucesso",
@@ -135,7 +181,12 @@ const Administracao = () => {
 
   const cancelarOrdem = () => {
     setMaquinaId("");
+    setStatus("Aberta");
+    setDataAbertura(new Date().toISOString().split("T")[0]);
     setDescricao("");
+    setMarca("");
+    setNomeMecanico("");
+    setImagemUri(null);
     setModalOrdem(false);
   };
 
@@ -377,72 +428,157 @@ const Administracao = () => {
 
       {/* MODAL DE CADASTRO */}
       {modalOrdem && (
-        <View className="absolute inset-0 z-50 items-center justify-center bg-black/50 px-5">
-          <View className="w-full rounded-3xl bg-white p-6">
-            <Text className="text-2xl font-bold text-[#202124]">
-              Nova Ordem
-            </Text>
+        <View className="absolute inset-0 z-50 bg-black/50">
+          <ScrollView
+            className="flex-1 px-5"
+            contentContainerStyle={{ py: 20, justifyContent: "center" }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="w-full rounded-3xl bg-white p-6 my-auto">
+              <Text className="text-2xl font-bold text-[#202124]">
+                Nova Ordem
+              </Text>
 
-            <Text className="mt-1 text-sm text-[#73777A]">
-              Preencha os dados da ordem.
-            </Text>
+              {/* ID MÁQUINA */}
+              <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
+                Id Máquina
+              </Text>
 
-            {/* ID MÁQUINA */}
-            <Text className="mt-6 mb-2 text-base font-bold text-[#3F4442]">
-              ID da Máquina
-            </Text>
+              <TextInput
+                value={maquinaId}
+                onChangeText={setMaquinaId}
+                placeholder="Selecione o ID da máquina..."
+                keyboardType="numeric"
+                className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
+              />
 
-            <TextInput
-              value={maquinaId}
-              onChangeText={setMaquinaId}
-              placeholder="Digite o ID da máquina (ex: 35)"
-              keyboardType="numeric"
-              className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base"
-            />
+              {/* STATUS */}
+              <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
+                Status
+              </Text>
 
-            {/* DESCRIÇÃO DO PROBLEMA */}
-            <Text className="mt-5 mb-2 text-base font-bold text-[#3F4442]">
-              Descrição do problema
-            </Text>
+              <TextInput
+                value={status}
+                onChangeText={setStatus}
+                placeholder="Ex: Aberta, Manutenção, Concluida"
+                className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
+              />
 
-            <TextInput
-              value={descricao}
-              onChangeText={setDescricao}
-              placeholder="Digite o problema encontrado"
-              multiline={true}
-              numberOfLines={4}
-              textAlignVertical="top"
-              className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base"
-              style={styles.textArea}
-            />
+              {/* DATA DE ABERTURA */}
+              <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
+                Data de Abertura
+              </Text>
 
-            {/* BOTÕES DE AÇÃO */}
-            <View className="mt-6 flex-row gap-3">
+              <TextInput
+                value={dataAbertura}
+                onChangeText={setDataAbertura}
+                placeholder="AAAA-MM-DD"
+                className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
+              />
+
+              {/* DESCRIÇÃO DO PROBLEMA */}
+              <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
+                Descrição do Problema
+              </Text>
+
+              <TextInput
+                value={descricao}
+                onChangeText={setDescricao}
+                placeholder="Descreva o problema..."
+                multiline={true}
+                numberOfLines={3}
+                textAlignVertical="top"
+                className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
+              />
+
+              {/* MARCA */}
+              <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
+                Marca
+              </Text>
+
+              <TextInput
+                value={marca}
+                onChangeText={setMarca}
+                placeholder="Digite a marca..."
+                className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
+              />
+
+              {/* NOME DO MECÂNICO */}
+              <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
+                Nome do Mecânico
+              </Text>
+
+              <TextInput
+                value={nomeMecanico}
+                onChangeText={setNomeMecanico}
+                placeholder="Digite o nome do mecânico..."
+                className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
+              />
+
+              {/* IMAGEM DO PROBLEMA */}
+              <Text className="mt-5 mb-2 text-lg font-bold text-[#202124]">
+                Imagem do Problema
+              </Text>
+
+              {imagemUri && (
+                <View className="mb-3 items-center">
+                  <Image
+                    source={{ uri: imagemUri }}
+                    style={{ width: "100%", height: 160, borderRadius: 12 }}
+                    contentFit="cover"
+                  />
+                </View>
+              )}
+
+              <View className="items-center justify-center rounded-2xl border border-dashed border-[#DDE5E0] p-6 bg-[#FAFAFA]">
+                <Pressable
+                  onPress={selecionarImagem}
+                  className="active:opacity-70"
+                >
+                  <Text className="text-base text-[#73777A]">
+                    {imagemUri ? "Trocar imagem" : "Selecionar imagem"}
+                  </Text>
+                </Pressable>
+              </View>
+
               <Pressable
-                onPress={cancelarOrdem}
-                disabled={enviando}
-                className="flex-1 rounded-xl border border-[#DDE5E0] py-3.5"
+                onPress={tirarFoto}
+                className="mt-3 flex-row items-center gap-2 active:opacity-70"
               >
-                <Text className="text-center font-bold text-[#73777A]">
-                  Cancelar
+                <MaterialIcons name="photo-camera" size={20} color="#73777A" />
+                <Text className="text-sm font-semibold text-[#73777A]">
+                  Tirar foto
                 </Text>
               </Pressable>
 
-              <Pressable
-                onPress={adicionarOrdem}
-                disabled={enviando}
-                className="flex-1 rounded-xl bg-[#24ca85] py-3.5"
-              >
-                {enviando ? (
-                  <ActivityIndicator color="white" />
-                ) : (
+              {/* BOTÕES */}
+              <View className="mt-6 flex-row gap-3">
+                <Pressable
+                  onPress={adicionarOrdem}
+                  disabled={enviando}
+                  className="flex-1 rounded-xl bg-[#24ca85] py-3.5 active:opacity-90"
+                >
+                  {enviando ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text className="text-center font-bold text-white">
+                      Salvar
+                    </Text>
+                  )}
+                </Pressable>
+
+                <Pressable
+                  onPress={cancelarOrdem}
+                  disabled={enviando}
+                  className="flex-1 rounded-xl bg-[#4A4A4A] py-3.5 active:opacity-90"
+                >
                   <Text className="text-center font-bold text-white">
-                    Adicionar
+                    Cancelar
                   </Text>
-                )}
-              </Pressable>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </ScrollView>
         </View>
       )}
     </View>
