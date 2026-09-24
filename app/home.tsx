@@ -1,368 +1,212 @@
-import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, Text, TextInput, Pressable, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { MaterialIcons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
+import ComponentsHome from "@/components/ComponentsHome/ComponentsHome";
 import * as ImagePicker from "expo-image-picker";
-
-import "@/global.css";
 import api from "@/lib/axios.config";
-import { obterUserId } from "@/lib/secureStore";
 
-type Ordem = {
-  id_ordem: number;
-  nome_mecanico?: string;
-  data_abertura: string;
-  descricao_problema: string;
+export type Ordem = {
+  id_ordem?: string | number;
+  id_maquinas?: string | number;
   status: string;
-  id_maquinas: number;
-  id_usuario: number;
-  status_ia?: string;
+  data_abertura?: string;
+  descricao_problema?: string;
   marca?: string;
-  imagem?: string;
+  nome_mecanico?: string;
+  imagem?: string | null;
+  id_usuario?: string | number;
+  status_ia?: string;
 };
 
-const Administracao = () => {
-  const [menuAberto, setMenuAberto] = useState<boolean>(false);
+const Home = () => {
+  const router = useRouter();
+
   const [mostrarForm, setMostrarForm] = useState<boolean>(false);
-
-  const [carregando, setCarregando] = useState<boolean>(true);
-  const [atualizando, setAtualizando] = useState<boolean>(false);
-  const [enviando, setEnviando] = useState<boolean>(false);
-
-  const [maquinaId, setMaquinaId] = useState<string>("");
-  const [status, setStatus] = useState<string>("Aberta");
-  const [dataAbertura, setDataAbertura] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
-  const [descricao, setDescricao] = useState<string>("");
-  const [marca, setMarca] = useState<string>("");
-  const [nomeMecanico, setNomeMecanico] = useState<string>("");
-  const [imagemUri, setImagemUri] = useState<string | null>(null);
-
+  const [busca, setBusca] = useState<string>("");
   const [ordens, setOrdens] = useState<Ordem[]>([]);
+  const [carregando, setCarregando] = useState<boolean>(true);
+  const [clicouSalvar, setClicouSalvar] = useState<boolean>(false);
+
+  const [form, setForm] = useState<Ordem>({
+    id_maquinas: "",
+    status: "",
+    data_abertura: "",
+    descricao_problema: "",
+    marca: "",
+    nome_mecanico: "",
+    imagem: null,
+    id_usuario: "",
+    status_ia: "Pendente",
+  });
+
+  const isStatusValid = (form.status || "").length >= 1;
+  const isDataAberturaValid = (form.data_abertura || "").length >= 4;
+  const isDescricaoValid = (form.descricao_problema || "").length >= 5;
+  const isMarcaValid = (form.marca || "").length >= 5;
+  const isMecanicoValid = (form.nome_mecanico || "").length >= 5;
 
   const carregarOrdens = useCallback(async () => {
     try {
-      const { data } = await api.get<Ordem[]>("/ordensservico");
-
+      const { data } = await api.get("/ordens_de_servico");
       if (Array.isArray(data)) {
         setOrdens(data);
       }
     } catch (error) {
-      console.error("Erro ao buscar ordens:", error);
-      Alert.alert(
-        "Erro",
-        "Não foi possível carregar as ordens de serviço."
-      );
+      console.log("Erro ao buscar ordens:", error);
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       carregarOrdens().finally(() => setCarregando(false));
-    }, [carregarOrdens])
+    }, [carregarOrdens]),
   );
 
-  const aoAtualizar = async () => {
-    setAtualizando(true);
+  function handleLogout() {
+    localStorage.removeItem("id");
+    localStorage.removeItem("email");
+    router.replace("/");
+  }
 
-    try {
-      await carregarOrdens();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setAtualizando(false);
+  async function selecionarImagem() {
+    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissao.granted) {
+      alert("Permissão: É necessário permitir o acesso à galeria.");
+      return;
     }
-  };
 
-  // FUNÇÕES PARA IMAGEM
-  const selecionarImagem = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const resultado = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
-      quality: 0.8,
+      aspect: [4, 3],
+      quality: 0.1,
+      base64: true,
     });
 
-    if (!result.canceled) {
-      setImagemUri(result.assets[0].uri);
+    if (!resultado.canceled && resultado.assets[0]) {
+      const asset = resultado.assets[0];
+      const imagemFinal = asset.base64
+        ? `data:image/jpeg;base64,${asset.base64}`
+        : asset.uri;
+      setForm((prev) => ({ ...prev, imagem: imagemFinal }));
     }
-  };
+  }
 
-  const tirarFoto = async () => {
-    const { status: cameraStatus } =
-      await ImagePicker.requestCameraPermissionsAsync();
+  async function handleSalvar() {
+    setClicouSalvar(true);
 
-    if (cameraStatus !== "granted") {
-      Alert.alert(
-        "Permissão necessária",
-        "É necessária a permissão de acesso à câmera para tirar fotos."
-      );
+    if (
+      !isStatusValid ||
+      !isDataAberturaValid ||
+      !isDescricaoValid ||
+      !isMarcaValid ||
+      !isMecanicoValid
+    ) {
+      alert("Aviso: Preencha todos os campos corretamente.");
       return;
     }
 
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setImagemUri(result.assets[0].uri);
-    }
-  };
-
-  const limparFormulario = () => {
-    setMaquinaId("");
-    setStatus("Aberta");
-    setDataAbertura(new Date().toISOString().split("T")[0]);
-    setDescricao("");
-    setMarca("");
-    setNomeMecanico("");
-    setImagemUri(null);
-  };
-
-  const adicionarOrdem = async () => {
-    if (!maquinaId.trim() || !descricao.trim()) {
-      Alert.alert(
-        "Atenção",
-        "Preencha o ID da máquina e a descrição do problema!"
-      );
-      return;
-    }
-
-    const userId = await obterUserId();
-
-    if (!userId) {
-      Alert.alert("Erro", "Usuário não encontrado.");
-      return;
-    }
-
-    const novaOrdem = {
-      id_maquinas: Number(maquinaId),
-      status: status.trim() || "Aberta",
-      data_abertura:
-        dataAbertura.trim() ||
-        new Date().toISOString().split("T")[0],
-      descricao_problema: descricao,
-      marca: marca.trim(),
-      nome_mecanico: nomeMecanico.trim() || "A definir",
-      imagem: imagemUri || "",
-      id_usuario: Number(userId),
-      status_ia: "Pendente",
+    const novaOrdem: Ordem = {
+      id_maquinas: form.id_maquinas,
+      status: form.status,
+      data_abertura: form.data_abertura,
+      descricao_problema: form.descricao_problema,
+      marca: form.marca,
+      nome_mecanico: form.nome_mecanico,
+      imagem: form.imagem,
+      id_usuario: Number(localStorage.getItem('id_user')),
+      status_ia: form.status_ia,
     };
 
+    console.log(novaOrdem);
+    alert('');
+
     try {
-      setEnviando(true);
-
-      const { data } = await api.post<Ordem>(
-        "/ordensservico",
-        novaOrdem
-      );
-
-      setOrdens((prev) => [data, ...prev]);
-
-      Alert.alert(
-        "Sucesso",
-        "Ordem de serviço cadastrada com sucesso!"
-      );
-
-      limparFormulario();
-      setMostrarForm(false);
-    } catch (error) {
-      console.error(error);
-
-      Alert.alert(
-        "Erro",
-        "Falha ao salvar a ordem de serviço."
-      );
+      const resposta = await api.post("/ordensservico", novaOrdem);
+      if(resposta.status==201){
+        setOrdens((prev) => [novaOrdem, ...prev]);
+        alert("Sucesso: Ordem criada com sucesso!");
+        await carregarOrdens();
+      }
+    } catch (erro) {
+      console.log("Erro na requisição:", erro);
+      alert("Aviso: Erro ao conectar com o servidor.");
     } finally {
-      setEnviando(false);
+      setMostrarForm(false);
+      setClicouSalvar(false);
+      setForm({
+        id_maquinas: "",
+        status: "",
+        data_abertura: "",
+        descricao_problema: "",
+        marca: "",
+        nome_mecanico: "",
+        imagem: null,
+        id_usuario: "",
+        status_ia: "Pendente",
+      });
     }
-  };
+  }
 
-  const cancelarOrdem = () => {
-    limparFormulario();
-    setMostrarForm(false);
-  };
+  const ordensFiltradas = (ordens || []).filter((ordem) => {
+    const termo = busca.toLowerCase();
+    const idMaq = ordem.id_maquinas || "";
+    const desc = ordem.descricao_problema || "";
+    const mec = ordem.nome_mecanico || "";
 
-  const handleLogout = () => {
-    console.log("Logout clicado");
-  };
-
-  const ordensAbertas = ordens.filter(
-    (o) => o.status === "Aberta"
-  ).length;
-
-  const ordensManutencao = ordens.filter(
-    (o) => o.status === "Em manutenção"
-  ).length;
-
-  const ordensConcluidas = ordens.filter(
-    (o) => o.status === "Concluída"
-  ).length;
+    return (
+      ordem.status?.toLowerCase().includes(termo) ||
+      ordem.marca?.toLowerCase().includes(termo) ||
+      desc.toLowerCase().includes(termo) ||
+      mec.toLowerCase().includes(termo) ||
+      idMaq.toString().includes(termo)
+    );
+  });
 
   return (
     <SafeAreaView
       className="flex-1 bg-[#24ca85]"
       edges={["top", "left", "right"]}
     >
-      {/* HEADER */}
-      <View className="bg-[#24ca85] px-4 py-2 flex-row items-center justify-between">
-        <Pressable
-          onPress={() => setMenuAberto(!menuAberto)}
-          className="p-2"
-        >
-          <Text className="text-3xl text-white">☰</Text>
-        </Pressable>
-
+      <View className="bg-[#24ca85] pt-2 pb-4 px-4 flex-row items-center justify-between gap-3">
         <Image
           source={require("@/assets/image/sodi_logo_preto.jpg")}
-          className="w-14 h-14 rounded-full"
+          className="w-10 h-10 rounded-full"
           contentFit="contain"
         />
+
+        <View className="flex-1 bg-white rounded-full px-4 justify-center h-10">
+          <TextInput
+            value={busca}
+            onChangeText={setBusca}
+            placeholder="Buscar ordem..."
+            placeholderTextColor="#6B7280"
+            underlineColorAndroid="transparent"
+            className="flex-1 text-sm text-black h-full"
+          />
+        </View>
 
         <Pressable
           onPress={handleLogout}
           className="p-2 items-center justify-center bg-white/20 rounded-lg"
         >
-          <Text className="text-white font-bold text-xs">
-            Sair
-          </Text>
+          <Text className="text-white font-bold text-xs">Sair</Text>
         </Pressable>
       </View>
 
-      {/* MENU */}
-      {menuAberto && (
-        <View className="absolute left-0 top-24 z-50 w-72 rounded-br-2xl rounded-tr-2xl border border-gray-200 bg-white p-5 shadow-2xl">
-          <Text className="mb-4 text-xl font-bold text-[#24ca85]">
-            Menu
-          </Text>
-
-          <Pressable
-            onPress={() => setMenuAberto(false)}
-            className="border-b border-gray-200 py-3"
-          >
-            <Text className="text-base font-bold text-[#24ca85]">
-              Administração
-            </Text>
-          </Pressable>
-
-          <Pressable className="border-b border-gray-200 py-3">
-            <Text className="text-base text-gray-700">
-              Ordem de Serviço
-            </Text>
-          </Pressable>
-
-          <Pressable className="border-b border-gray-200 py-3">
-            <Text className="text-base text-gray-700">
-              Máquinas
-            </Text>
-          </Pressable>
-
-          <Pressable className="border-b border-gray-200 py-3">
-            <Text className="text-base text-gray-700">
-              Funcionários
-            </Text>
-          </Pressable>
-
-          <Pressable className="py-3">
-            <Text className="text-base text-gray-700">
-              Histórico
-            </Text>
-          </Pressable>
-        </View>
-      )}
-
-      {/* CONTEÚDO */}
       <View className="flex-1 bg-white">
         {carregando ? (
-          <Text className="text-center text-gray-500 mt-10">
-            Carregando...
-          </Text>
+          <Text className="text-center text-gray-500 mt-10">Carregando...</Text>
         ) : (
           <FlatList
             className="flex-1"
-            data={ordens}
-            keyExtractor={(item, index) =>
-              String(item.id_ordem ?? index)
-            }
+            data={ordensFiltradas}
+            keyExtractor={(item, index) => String(item.id_ordem ?? index)}
             contentContainerStyle={{ padding: 16 }}
-            refreshControl={
-              <RefreshControl
-                refreshing={atualizando}
-                onRefresh={aoAtualizar}
-              />
-            }
             ListHeaderComponent={
               <View>
-                {/* TÍTULO */}
-                <View className="mb-5">
-                  <Text className="text-3xl font-bold text-[#202124]">
-                    Administração
-                  </Text>
-
-                  <Text className="mt-1 text-base text-[#73777A]">
-                    Visão geral do sistema
-                  </Text>
-                </View>
-
-                {/* CARDS */}
-                <View className="gap-4 mb-5">
-                  <View className="rounded-2xl bg-[#F88C38] p-5">
-                    <Text className="text-lg font-bold text-white">
-                      Ordens Abertas
-                    </Text>
-
-                    <Text className="mt-2 text-4xl font-extrabold text-white">
-                      {ordensAbertas}
-                    </Text>
-
-                    <Text className="mt-1 text-sm text-white/80">
-                      Ordens aguardando atendimento
-                    </Text>
-                  </View>
-
-                  <View className="rounded-2xl bg-[#0081C9] p-5">
-                    <Text className="text-lg font-bold text-white">
-                      Em Manutenção
-                    </Text>
-
-                    <Text className="mt-2 text-4xl font-extrabold text-white">
-                      {ordensManutencao}
-                    </Text>
-
-                    <Text className="mt-1 text-sm text-white/80">
-                      Ordens em andamento
-                    </Text>
-                  </View>
-
-                  <View className="rounded-2xl bg-[#006B38] p-5">
-                    <Text className="text-lg font-bold text-white">
-                      Concluídas
-                    </Text>
-
-                    <Text className="mt-2 text-4xl font-extrabold text-white">
-                      {ordensConcluidas}
-                    </Text>
-
-                    <Text className="mt-1 text-sm text-white/80">
-                      Ordens finalizadas
-                    </Text>
-                  </View>
-                </View>
-
-                {/* BOTÃO NOVA ORDEM */}
                 {!mostrarForm ? (
                   <Pressable
                     onPress={() => setMostrarForm(true)}
@@ -373,166 +217,146 @@ const Administracao = () => {
                     </Text>
                   </Pressable>
                 ) : (
-                  /* FORMULÁRIO */
                   <View className="bg-white p-4 rounded-2xl border border-gray-200 mb-5">
                     <Text className="text-lg font-bold text-gray-800 mb-3">
                       Nova Ordem
                     </Text>
 
-                    {/* ID MÁQUINA */}
                     <View className="mb-3">
                       <Text className="text-sm font-bold text-gray-700 mb-1">
                         Id Máquina
                       </Text>
-
-                      <TextInput
-                        value={maquinaId}
-                        onChangeText={setMaquinaId}
-                        placeholder="Digite o ID da máquina..."
-                        keyboardType="numeric"
+                      <select
+                        value={form.id_maquinas}
+                        onChange={(e) =>
+                          setForm({ ...form, id_maquinas: e.target.value })
+                        }
                         className="w-full border border-gray-300 rounded-xl px-3 py-2 bg-white text-gray-800 text-[15px]"
-                      />
+                      >
+                        <option value="">Selecione o ID da máquina...</option>
+                        <option value="33">1</option>
+                        <option value="34">2</option>
+                        <option value="35">3</option>
+                        <option value="36">4</option>
+                        <option value="37">5</option>
+                      </select>
                     </View>
 
-                    {/* STATUS */}
-                    <View className="mb-3">
-                      <Text className="text-sm font-bold text-gray-700 mb-1">
-                        Status
+                    <ComponentsHome
+                      label="Status"
+                      placeholder="Ex: Aberta, Manutenção, Concluida"
+                      value={form.status}
+                      setValue={(text) => setForm({ ...form, status: text })}
+                    />
+                    {clicouSalvar && !isStatusValid && (
+                      <Text className="text-red-500 text-xs -mt-2 mb-2">
+                        Status inválido
                       </Text>
-
-                      <TextInput
-                        value={status}
-                        onChangeText={setStatus}
-                        placeholder="Ex: Aberta, Manutenção, Concluída"
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2 bg-white text-gray-800 text-[15px]"
-                      />
-                    </View>
-
-                    {/* DATA */}
-                    <View className="mb-3">
-                      <Text className="text-sm font-bold text-gray-700 mb-1">
-                        Data de Abertura
-                      </Text>
-
-                      <TextInput
-                        value={dataAbertura}
-                        onChangeText={setDataAbertura}
-                        placeholder="AAAA-MM-DD"
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2 bg-white text-gray-800 text-[15px]"
-                      />
-                    </View>
-
-                    {/* DESCRIÇÃO */}
-                    <View className="mb-3">
-                      <Text className="text-sm font-bold text-gray-700 mb-1">
-                        Descrição do Problema
-                      </Text>
-
-                      <TextInput
-                        value={descricao}
-                        onChangeText={setDescricao}
-                        placeholder="Descreva o problema..."
-                        multiline={true}
-                        numberOfLines={3}
-                        textAlignVertical="top"
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2 bg-white text-gray-800 text-[15px]"
-                      />
-                    </View>
-
-                    {/* MARCA */}
-                    <View className="mb-3">
-                      <Text className="text-sm font-bold text-gray-700 mb-1">
-                        Marca
-                      </Text>
-
-                      <TextInput
-                        value={marca}
-                        onChangeText={setMarca}
-                        placeholder="Digite a marca..."
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2 bg-white text-gray-800 text-[15px]"
-                      />
-                    </View>
-
-                    {/* MECÂNICO */}
-                    <View className="mb-3">
-                      <Text className="text-sm font-bold text-gray-700 mb-1">
-                        Nome do Mecânico
-                      </Text>
-
-                      <TextInput
-                        value={nomeMecanico}
-                        onChangeText={setNomeMecanico}
-                        placeholder="Digite o nome do mecânico..."
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2 bg-white text-gray-800 text-[15px]"
-                      />
-                    </View>
-
-                    {/* IMAGEM */}
-                    <Text className="text-sm font-bold text-gray-700 mb-1">
-                      Imagem do Problema
-                    </Text>
-
-                    {imagemUri && (
-                      <View className="mb-3 items-center">
-                        <Image
-                          source={{ uri: imagemUri }}
-                          style={{
-                            width: "100%",
-                            height: 160,
-                            borderRadius: 12,
-                          }}
-                          contentFit="cover"
-                        />
-                      </View>
                     )}
 
-                    <View className="items-center justify-center rounded-xl border border-dashed border-gray-300 p-5 bg-gray-50">
+                    <ComponentsHome
+                      label="Data de Abertura"
+                      value={form.data_abertura || ""}
+                      setValue={(text) =>
+                        setForm({ ...form, data_abertura: text })
+                      }
+                    />
+                    {clicouSalvar && !isDataAberturaValid && (
+                      <Text className="text-red-500 text-xs -mt-2 mb-2">
+                        Data de abertura inválida
+                      </Text>
+                    )}
+
+                    <ComponentsHome
+                      label="Descrição do Problema"
+                      placeholder="Descreva o problema..."
+                      value={form.descricao_problema || ""}
+                      setValue={(text) =>
+                        setForm({ ...form, descricao_problema: text })
+                      }
+                    />
+                    {clicouSalvar && !isDescricaoValid && (
+                      <Text className="text-red-500 text-xs -mt-2 mb-2">
+                        Descrição muito curta
+                      </Text>
+                    )}
+
+                    <ComponentsHome
+                      label="Marca"
+                      value={form.marca || ""}
+                      setValue={(text) => setForm({ ...form, marca: text })}
+                    />
+                    {clicouSalvar && !isMarcaValid && (
+                      <Text className="text-red-500 text-xs -mt-2 mb-2">
+                        Marca inválida
+                      </Text>
+                    )}
+
+                    <ComponentsHome
+                      label="Nome do Mecânico"
+                      value={form.nome_mecanico || ""}
+                      setValue={(text) =>
+                        setForm({ ...form, nome_mecanico: text })
+                      }
+                    />
+                    {clicouSalvar && !isMecanicoValid && (
+                      <Text className="text-red-500 text-xs -mt-2 mb-2">
+                        Nome do mecânico inválido
+                      </Text>
+                    )}
+
+                    <View className="w-full gap-1 mb-3">
+                      <Text className="text-sm font-bold text-gray-700">
+                        Imagem do Problema
+                      </Text>
                       <Pressable
                         onPress={selecionarImagem}
-                        className="active:opacity-70"
+                        className="w-full rounded-xl border border-gray-300 bg-white px-[14px] py-[10px] flex-row justify-between items-center"
                       >
-                        <Text className="text-base text-gray-500">
-                          {imagemUri
-                            ? "Trocar imagem"
-                            : "Selecionar imagem"}
+                        <Text
+                          className={`text-[15px] ${
+                            form.imagem ? "text-gray-800" : "text-gray-400"
+                          }`}
+                        >
+                          {form.imagem
+                            ? "Foto selecionada"
+                            : "Anexar foto da máquina..."}
                         </Text>
                       </Pressable>
+
+                      {form.imagem && (
+                        <View className="mt-2 relative">
+                          <Image
+                            source={{ uri: form.imagem }}
+                            className="w-full h-40 rounded-xl"
+                            contentFit="cover"
+                          />
+                          <Pressable
+                            onPress={() => setForm({ ...form, imagem: null })}
+                            className="absolute top-2 right-2 bg-white rounded-full px-2 py-1"
+                          >
+                            <Text className="text-red-500 font-bold text-xs">
+                              Remover
+                            </Text>
+                          </Pressable>
+                        </View>
+                      )}
                     </View>
 
-                    <Pressable
-                      onPress={tirarFoto}
-                      className="mt-3 flex-row items-center gap-2"
-                    >
-                      <MaterialIcons
-                        name="photo-camera"
-                        size={20}
-                        color="#73777A"
-                      />
-
-                      <Text className="text-sm font-semibold text-gray-500">
-                        Tirar foto
-                      </Text>
-                    </Pressable>
-
-                    {/* BOTÕES */}
-                    <View className="flex-row justify-between gap-3 mt-5">
+                    <View className="flex-row justify-between gap-3 mt-3">
                       <Pressable
-                        onPress={adicionarOrdem}
-                        disabled={enviando}
+                        onPress={handleSalvar}
                         className="flex-1 bg-[#24ca85] py-3 rounded-xl items-center"
                       >
-                        {enviando ? (
-                          <ActivityIndicator color="white" />
-                        ) : (
-                          <Text className="text-white font-bold text-[15px]">
-                            Salvar
-                          </Text>
-                        )}
+                        <Text className="text-white font-bold text-[15px]">
+                          Salvar
+                        </Text>
                       </Pressable>
-
                       <Pressable
-                        onPress={cancelarOrdem}
-                        disabled={enviando}
+                        onPress={() => {
+                          setMostrarForm(false);
+                          setClicouSalvar(false);
+                        }}
                         className="flex-1 bg-[#4A4A4A] py-3 rounded-xl items-center"
                       >
                         <Text className="text-white font-bold text-[15px]">
@@ -542,67 +366,45 @@ const Administracao = () => {
                     </View>
                   </View>
                 )}
-
-                {/* TÍTULO DA LISTA */}
-                {ordens.length > 0 && (
-                  <Text className="text-xl font-bold text-gray-800 mb-4">
-                    Ordens cadastradas
-                  </Text>
-                )}
               </View>
             }
             renderItem={({ item: ordem }) => (
               <View className="bg-white rounded-2xl p-4 mb-4 border border-gray-200">
-                <Text className="text-gray-800 text-sm my-[2px]">
-                  <Text className="font-bold">Ordem:</Text>{" "}
-                  #{ordem.id_ordem}
-                </Text>
-
+                {ordem.imagem && (
+                  <Image
+                    source={{ uri: ordem.imagem }}
+                    className="w-full h-40 rounded-xl mb-3"
+                    contentFit="cover"
+                  />
+                )}
                 <Text className="text-gray-800 text-sm my-[2px]">
                   <Text className="font-bold">Máquina:</Text>{" "}
                   {ordem.id_maquinas || "N/A"}
                 </Text>
-
                 <Text className="text-gray-800 text-sm my-[2px]">
-                  <Text className="font-bold">Status:</Text>{" "}
-                  {ordem.status}
+                  <Text className="font-bold">Status:</Text> {ordem.status}
                 </Text>
-
                 <Text className="text-gray-800 text-sm my-[2px]">
-                  <Text className="font-bold">
-                    Data Abertura:
-                  </Text>{" "}
+                  <Text className="font-bold">Data Abertura:</Text>{" "}
                   {ordem.data_abertura || "N/A"}
                 </Text>
-
                 <Text className="text-gray-800 text-sm my-[2px]">
                   <Text className="font-bold">Descrição:</Text>{" "}
                   {ordem.descricao_problema || "N/A"}
                 </Text>
-
                 <Text className="text-gray-800 text-sm my-[2px]">
                   <Text className="font-bold">Marca:</Text>{" "}
                   {ordem.marca || "N/A"}
                 </Text>
-
                 <Text className="text-gray-800 text-sm my-[2px]">
                   <Text className="font-bold">Mecânico:</Text>{" "}
                   {ordem.nome_mecanico || "N/A"}
                 </Text>
-
                 {ordem.status_ia && (
                   <Text className="text-gray-800 text-sm my-[2px]">
                     <Text className="font-bold">Status IA:</Text>{" "}
                     {ordem.status_ia}
                   </Text>
-                )}
-
-                {ordem.imagem && (
-                  <Image
-                    source={{ uri: ordem.imagem }}
-                    style={styles.imagemOrdem}
-                    contentFit="cover"
-                  />
                 )}
               </View>
             )}
@@ -618,13 +420,4 @@ const Administracao = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  imagemOrdem: {
-    width: "100%",
-    height: 160,
-    borderRadius: 12,
-    marginTop: 10,
-  },
-});
-
-export default Administracao;
+export default Home;
