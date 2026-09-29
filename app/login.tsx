@@ -44,7 +44,7 @@ export default function Login() {
     }
   }, [email_usuario]);
 
-  // 3. Validação da Senha
+
   useEffect(() => {
     if (senha_usuario === "") {
       setIsErrorInSenha(false);
@@ -53,7 +53,7 @@ export default function Login() {
     }
   }, [senha_usuario]);
 
-  // 4. Função de Login Manual
+
   const onSubmit = async (email: string, senha: string) => {
     try {
       console.log("A enviar dados:", email, senha);
@@ -63,9 +63,7 @@ export default function Login() {
       if (resposta && (resposta.status === 200 || resposta.status === 201)) {
         Alert.alert("Sucesso", "SEJA BEM-VINDO!");
 
-        // // Guarda o ID do utilizador (garantindo que se o servidor retornar na propriedade data ou id_usuario, seja salvo)
-        // const userId = resposta.data?.id_usuario || resposta.data?.id || "1";
-        // await AsyncStorage.setItem("id_user", String(userId));
+
 
         await salvarUserId(JSON.stringify(resposta.data.id_usuario));
         // Redireciona para a home
