@@ -33,6 +33,14 @@ type Ordem = {
   imagem?: string;
 };
 
+type Maquina = {
+  id_maquinas: number;
+  nome_maquina?: string;
+  marca?: string;
+  modelo?: string;
+  status?: string;
+};
+
 const Administracao = () => {
   const [menuAberto, setMenuAberto] = useState<boolean>(false);
   const [modalOrdem, setModalOrdem] = useState<boolean>(false);
@@ -53,35 +61,53 @@ const Administracao = () => {
 
   const [ordens, setOrdens] = useState<Ordem[]>([]);
 
+  // MÁQUINAS
+  const [maquinas, setMaquinas] = useState<Maquina[]>([]);
+
+  // CARREGAR ORDENS
   const carregarOrdens = useCallback(async () => {
     const { data } = await api.get<Ordem[]>("/ordensservico");
     setOrdens(data);
   }, []);
 
+  // CARREGAR MÁQUINAS
+  const carregarMaquinas = useCallback(async () => {
+    const { data } = await api.get<Maquina[]>("/maquinas");
+    setMaquinas(data);
+  }, []);
+
+  // CARREGAR ORDENS E MÁQUINAS
   useFocusEffect(
     useCallback(() => {
-      carregarOrdens()
+      Promise.all([
+        carregarOrdens(),
+        carregarMaquinas(),
+      ])
         .catch((error) => {
           console.error(error);
           Alert.alert(
             "Erro",
-            "Não foi possível carregar as ordens de serviço."
+            "Não foi possível carregar as ordens e máquinas."
           );
         })
         .finally(() => setCarregando(false));
-    }, [carregarOrdens])
+    }, [carregarOrdens, carregarMaquinas])
   );
 
+  // ATUALIZAR
   const aoAtualizar = async () => {
     setAtualizando(true);
 
     try {
-      await carregarOrdens();
+      await Promise.all([
+        carregarOrdens(),
+        carregarMaquinas(),
+      ]);
     } catch (error) {
       console.error(error);
       Alert.alert(
         "Erro",
-        "Não foi possível atualizar as ordens de serviço."
+        "Não foi possível atualizar as ordens e máquinas."
       );
     } finally {
       setAtualizando(false);
@@ -208,6 +234,7 @@ const Administracao = () => {
 
   return (
     <View className="flex-1 bg-[#F5F7F6] pt-12">
+
       {/* HEADER */}
       <View className="w-full flex-row items-center justify-between bg-[#24ca85] px-4 py-3 shadow-sm">
         <Pressable
@@ -299,6 +326,7 @@ const Administracao = () => {
         }
       >
         <View className="p-5">
+
           <View className="mb-6">
             <Text className="text-3xl font-bold text-[#202124]">
               Administração
@@ -311,6 +339,7 @@ const Administracao = () => {
 
           {/* CARDS RESUMO */}
           <View className="gap-4">
+
             <View className="rounded-2xl bg-[#F88C38] p-5 shadow-sm">
               <Text className="text-lg font-bold text-white">
                 Ordens Abertas
@@ -353,6 +382,7 @@ const Administracao = () => {
               </Text>
             </View>
 
+            {/* ORDEM DE SERVIÇO */}
             <View className="rounded-2xl bg-white p-5 shadow-sm">
               <Text className="text-xl font-bold text-[#202124]">
                 Ordem de Serviço
@@ -373,6 +403,56 @@ const Administracao = () => {
             </View>
           </View>
 
+          {/* LISTA DE MÁQUINAS */}
+          {!carregando && maquinas.length > 0 && (
+            <View className="mt-8">
+              <Text className="mb-4 text-2xl font-bold text-[#202124]">
+                Máquinas cadastradas
+              </Text>
+
+              <FlatList
+                data={maquinas}
+                keyExtractor={(item) =>
+                  String(item.id_maquinas)
+                }
+                scrollEnabled={false}
+                renderItem={({ item }) => (
+                  <View className="mb-3 rounded-2xl bg-white p-4 shadow-sm">
+
+                    <Text className="text-lg font-bold text-[#202124]">
+                      Máquina #{item.id_maquinas}
+                    </Text>
+
+                    {item.nome_maquina && (
+                      <Text className="mt-2 text-base text-[#3F4442]">
+                        Nome: {item.nome_maquina}
+                      </Text>
+                    )}
+
+                    {item.marca && (
+                      <Text className="mt-1 text-sm text-[#73777A]">
+                        Marca: {item.marca}
+                      </Text>
+                    )}
+
+                    {item.modelo && (
+                      <Text className="mt-1 text-sm text-[#73777A]">
+                        Modelo: {item.modelo}
+                      </Text>
+                    )}
+
+                    {item.status && (
+                      <Text className="mt-1 text-sm text-[#73777A]">
+                        Status: {item.status}
+                      </Text>
+                    )}
+
+                  </View>
+                )}
+              />
+            </View>
+          )}
+
           {/* LISTA DE ORDENS CADASTRADAS */}
           {carregando ? (
             <ActivityIndicator
@@ -388,20 +468,19 @@ const Administracao = () => {
 
                 <FlatList
                   data={ordens}
-                  keyExtractor={(item) => String(item.id_ordem)}
+                  keyExtractor={(item) =>
+                    String(item.id_ordem)
+                  }
                   scrollEnabled={false}
                   renderItem={({ item: ordem }) => (
                     <View className="mb-3 rounded-2xl bg-white p-4 shadow-sm">
+
                       <View className="flex-row items-center justify-between">
                         <Text className="text-lg font-bold text-[#202124]">
                           Ordem #{ordem.id_ordem}
                         </Text>
 
-                        <View className="rounded-full bg-[#FFF1E6] px-3 py-1">
-                          <Text className="text-sm font-bold text-[#F88C38]">
-                            {ordem.status}
-                          </Text>
-                        </View>
+
                       </View>
 
                       <Text className="mt-3 text-base font-bold text-[#3F4442]">
@@ -417,12 +496,14 @@ const Administracao = () => {
                           Data: {ordem.data_abertura}
                         </Text>
                       )}
+
                     </View>
                   )}
                 />
               </View>
             )
           )}
+
         </View>
       </ScrollView>
 
@@ -437,7 +518,8 @@ const Administracao = () => {
             }}
             showsVerticalScrollIndicator={false}
           >
-            <View className="w-full rounded-3xl bg-white p-6 my-auto">
+            <View className="my-auto w-full rounded-3xl bg-white p-6">
+
               <Text className="text-2xl font-bold text-[#202124]">
                 Nova Ordem
               </Text>
@@ -527,19 +609,25 @@ const Administracao = () => {
                 <View className="mb-3 items-center">
                   <Image
                     source={{ uri: imagemUri }}
-                    style={{ width: "100%", height: 160, borderRadius: 12 }}
+                    style={{
+                      width: "100%",
+                      height: 160,
+                      borderRadius: 12,
+                    }}
                     contentFit="cover"
                   />
                 </View>
               )}
 
-              <View className="items-center justify-center rounded-2xl border border-dashed border-[#DDE5E0] p-6 bg-[#FAFAFA]">
+              <View className="items-center justify-center rounded-2xl border border-dashed border-[#DDE5E0] bg-[#FAFAFA] p-6">
                 <Pressable
                   onPress={selecionarImagem}
                   className="active:opacity-70"
                 >
                   <Text className="text-base text-[#73777A]">
-                    {imagemUri ? "Trocar imagem" : "Selecionar imagem"}
+                    {imagemUri
+                      ? "Trocar imagem"
+                      : "Selecionar imagem"}
                   </Text>
                 </Pressable>
               </View>
@@ -553,6 +641,7 @@ const Administracao = () => {
                   size={20}
                   color="#73777A"
                 />
+
                 <Text className="text-sm font-semibold text-[#73777A]">
                   Tirar foto
                 </Text>
@@ -560,6 +649,7 @@ const Administracao = () => {
 
               {/* BOTÕES */}
               <View className="mt-6 flex-row gap-3">
+
                 <Pressable
                   onPress={adicionarOrdem}
                   disabled={enviando}
@@ -583,6 +673,7 @@ const Administracao = () => {
                     Cancelar
                   </Text>
                 </Pressable>
+
               </View>
             </View>
           </ScrollView>

@@ -7,6 +7,7 @@ import ComponentsHome from "@/components/ComponentsHome/ComponentsHome";
 import SeletorDeImagem from "@/components/SeletorDeImagem/SeletorDeImagem";
 import * as ImagePicker from "expo-image-picker";
 import api from "@/lib/axios.config";
+import { obterUserId, removerUserId } from "@/lib/secureStore";
 
 export type Ordem = {
   id_ordem?: string | number;
@@ -58,7 +59,7 @@ const Home = () => {
 
   const carregarOrdens = useCallback(async () => {
     try {
-      const { data } = await api.get("/ordens_de_servico");
+      const { data } = await api.get("/ordensservico");
       if (Array.isArray(data)) {
         setOrdens(data);
       }
@@ -86,14 +87,8 @@ const Home = () => {
     }, [carregarOrdens, carregarMaquinas]),
   );
 
-  function handleLogout() {
-   
-    localStorage.removeItem("id_user");
-    localStorage.removeItem("id");
-    localStorage.removeItem("email");
-    localStorage.clear();
-
-
+  async function handleLogout() {
+    await removerUserId();
     router.replace("/");
   }
 
@@ -118,9 +113,11 @@ const Home = () => {
       descricao_problema: form.descricao_problema,
       marca: form.marca,
       nome_mecanico: form.nome_mecanico,
-      id_usuario: Number(localStorage.getItem("id_user")),
+      id_usuario: Number(await obterUserId()),
       status_ia: form.status_ia,
     };
+    console.log(novaOrdem);
+    alert("");
 
     try {
       const resposta = await api.post("/ordensservico", novaOrdem);
@@ -138,12 +135,11 @@ const Home = () => {
       setAbrirSelecao(false);
       setImagem(null);
       setForm({
-        id_maquinas: "",
-        status: "",
+        nome_mecanico: "",
         data_abertura: "",
         descricao_problema: "",
-        marca: "",
-        nome_mecanico: "",
+        status: "",
+        id_maquinas: "",
         id_usuario: "",
         status_ia: "Pendente",
       });

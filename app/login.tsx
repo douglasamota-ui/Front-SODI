@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, StyleSheet, Alert } from "react-native";
 import { Link, useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import CampoDeTexto from "@/components/CampodeTexto/CampodeTexto";
 import Botao from "@/components/botao/botao";
 import { BasicSignin } from "@/service/user.service";
-import { salvarUserId } from "@/lib/secureStore";
+import { obterUserId, salvarUserId } from "@/lib/secureStore";
 
 export default function Login() {
   const router = useRouter();
@@ -19,13 +18,10 @@ export default function Login() {
   useEffect(() => {
     const verificarLoginSalvo = async () => {
       try {
-        const idSalvo = await AsyncStorage.getItem("id_user");
-        console.log("ID Salvo no AsyncStorage:", idSalvo);
+        const idSalvo = await obterUserId();
 
         if (idSalvo && idSalvo !== "null" && idSalvo !== "undefined") {
-          setTimeout(() => {
-            router.replace("/home");
-          }, 100);
+          router.replace("/home");
         }
       } catch (error) {
         console.log("Erro ao verificar sessão:", error);
@@ -44,7 +40,6 @@ export default function Login() {
     }
   }, [email_usuario]);
 
-
   useEffect(() => {
     if (senha_usuario === "") {
       setIsErrorInSenha(false);
@@ -53,20 +48,15 @@ export default function Login() {
     }
   }, [senha_usuario]);
 
-
   const onSubmit = async (email: string, senha: string) => {
     try {
       console.log("A enviar dados:", email, senha);
-      const resposta = (await BasicSignin(email, senha)) as any;
+      const resposta = await BasicSignin(email, senha);
 
-    
-      if (resposta && (resposta.status === 200 || resposta.status === 201)) {
+      if (resposta?.status == 200) {
         Alert.alert("Sucesso", "SEJA BEM-VINDO!");
 
-
-
         await salvarUserId(JSON.stringify(resposta.data.id_usuario));
-        // Redireciona para a home
         router.replace("/home");
       } else {
         Alert.alert("Atenção", "E-mail ou senha incorretos.");
