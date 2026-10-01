@@ -13,12 +13,12 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 
 import "@/global.css";
 import api from "@/lib/axios.config";
-import { obterUserId } from "@/lib/secureStore";
+import { obterUserId, removerUserId } from "@/lib/secureStore";
 
 type Ordem = {
   id_ordem: number;
@@ -42,6 +42,7 @@ type Maquina = {
 };
 
 const Administracao = () => {
+  const router = useRouter();
   const [menuAberto, setMenuAberto] = useState<boolean>(false);
   const [modalOrdem, setModalOrdem] = useState<boolean>(false);
   const [modalMaquina, setModalMaquina] = useState<boolean>(false);
@@ -317,8 +318,9 @@ const Administracao = () => {
     }
   };
 
-  const handleLogout = () => {
-    console.log("Logout clicado");
+  const handleLogout = async () => {
+    await removerUserId();
+    router.replace("/");
   };
 
   const ordensAbertas = ordens.filter(
