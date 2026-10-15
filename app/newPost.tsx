@@ -11,7 +11,7 @@ const NewPost = () => {
   const [titulo, setTitulo] = useState("");
   const [texto, setTexto] = useState("");
   const [imagem, setImagem] = useState<ImagePicker.ImagePickerAsset | null>(
-    null
+    null,
   );
 
   const [isTituloError, setIsTituloError] = useState<boolean>(false);
@@ -33,14 +33,16 @@ const NewPost = () => {
 
     const userId = await obterUserId();
 
+    console.log(imagem.fileName);
+
     const formData = new FormData();
     formData.append("titulo", titulo);
     formData.append("texto", texto);
     if (userId) formData.append("usuarioId", userId);
     formData.append("imagem", {
       uri: imagem.uri,
-      name: imagem.fileName ?? "imagem.jpg",
-      type: imagem.mimeType ?? "image/jpeg",
+      name: imagem.fileName ?? "",
+      type: imagem.mimeType ?? "",
     } as unknown as Blob);
 
     try {

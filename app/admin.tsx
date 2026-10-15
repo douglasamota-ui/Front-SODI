@@ -14,8 +14,6 @@ import {
 import { Image } from "expo-image";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
-
 import "@/global.css";
 import api from "@/lib/axios.config";
 import { obterUserId, removerUserId } from "@/lib/secureStore";
@@ -30,7 +28,6 @@ type Ordem = {
   id_usuario: number;
   status_ia?: string;
   marca?: string;
-  imagem?: string;
 };
 
 type Maquina = {
@@ -43,46 +40,78 @@ type Maquina = {
 
 const Administracao = () => {
   const router = useRouter();
-  const [menuAberto, setMenuAberto] = useState<boolean>(false);
-  const [modalOrdem, setModalOrdem] = useState<boolean>(false);
-  const [modalMaquina, setModalMaquina] = useState<boolean>(false);
 
-  const [carregando, setCarregando] = useState<boolean>(true);
-  const [atualizando, setAtualizando] = useState<boolean>(false);
-  const [enviando, setEnviando] = useState<boolean>(false);
-  const [clicouSalvar, setClicouSalvar] = useState<boolean>(false);
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [modalOrdem, setModalOrdem] = useState(false);
+  const [modalMaquina, setModalMaquina] = useState(false);
 
-  const [maquinaId, setMaquinaId] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
-  const [dataAbertura, setDataAbertura] = useState<string>("");
-  const [descricao, setDescricao] = useState<string>("");
-  const [marca, setMarca] = useState<string>("");
-  const [nomeMecanico, setNomeMecanico] = useState<string>("");
-  const [imagemUri, setImagemUri] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [atualizando, setAtualizando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [clicouSalvar, setClicouSalvar] = useState(false);
 
-  const [idMaquinaCadastro, setIdMaquinaCadastro] = useState<string>("");
-  const [modeloMaquina, setModeloMaquina] = useState<string>("");
-  const [marcaMaquina, setMarcaMaquina] = useState<string>("");
-  const [anoMaquina, setAnoMaquina] = useState<string>("");
-  const [statusMaquina, setStatusMaquina] = useState<string>("");
-  const [enviandoMaquina, setEnviandoMaquina] = useState<boolean>(false);
-  const [clicouSalvarMaquina, setClicouSalvarMaquina] = useState<boolean>(false);
+  const [maquinaId, setMaquinaId] = useState("");
+  const [status, setStatus] = useState("");
+  const [dataAbertura, setDataAbertura] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [marca, setMarca] = useState("");
+  const [nomeMecanico, setNomeMecanico] = useState("");
+
+  const [idMaquinaCadastro, setIdMaquinaCadastro] = useState("");
+  const [modeloMaquina, setModeloMaquina] = useState("");
+  const [marcaMaquina, setMarcaMaquina] = useState("");
+  const [anoMaquina, setAnoMaquina] = useState("");
+  const [statusMaquina, setStatusMaquina] = useState("");
+  const [enviandoMaquina, setEnviandoMaquina] = useState(false);
+  const [clicouSalvarMaquina, setClicouSalvarMaquina] = useState(false);
 
   const [ordens, setOrdens] = useState<Ordem[]>([]);
   const [maquinas, setMaquinas] = useState<Maquina[]>([]);
-  const [abrirSelecao, setAbrirSelecao] = useState<boolean>(false);
+  const [abrirSelecao, setAbrirSelecao] = useState(false);
 
   const isStatusValid = status.trim().length >= 1;
-  const isDataAberturaValid = /^\d{4}-\d{2}-\d{2}$/.test(dataAbertura.trim());
+  const isDataAberturaValid =
+    /^\d{4}-\d{2}-\d{2}$/.test(dataAbertura.trim());
   const isDescricaoValid = descricao.trim().length >= 5;
   const isMarcaValid = marca.trim().length >= 5;
   const isMecanicoValid = nomeMecanico.trim().length >= 5;
 
-  const isIdMaquinaValid = Number.isInteger(Number(idMaquinaCadastro)) && Number(idMaquinaCadastro) > 0;
+  const isIdMaquinaValid =
+    Number.isInteger(Number(idMaquinaCadastro)) &&
+    Number(idMaquinaCadastro) > 0;
+
   const isModeloMaquinaValid = modeloMaquina.trim().length >= 1;
   const isMarcaMaquinaValid = marcaMaquina.trim().length >= 1;
-  const isAnoMaquinaValid = Number.isInteger(Number(anoMaquina)) && Number(anoMaquina) > 0;
-  const isStatusMaquinaValid = statusMaquina.trim().length === 1;
+
+  const isAnoMaquinaValid =
+    Number.isInteger(Number(anoMaquina)) &&
+    Number(anoMaquina) > 0;
+
+  const isStatusMaquinaValid =
+    statusMaquina.trim().length === 1;
+
+  const buscarIdUsuario = async (): Promise<number | null> => {
+    try {
+      const idSalvo = await obterUserId();
+
+      if (
+        idSalvo !== null &&
+        idSalvo !== undefined &&
+        String(idSalvo).trim() !== ""
+      ) {
+        const id = Number(idSalvo);
+
+        if (Number.isInteger(id) && id > 0) {
+          return id;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Erro ao buscar ID do usuário:", error);
+      return null;
+    }
+  };
 
   const carregarOrdens = useCallback(async () => {
     try {
@@ -110,15 +139,21 @@ const Administracao = () => {
 
   useFocusEffect(
     useCallback(() => {
-      Promise.all([carregarOrdens(), carregarMaquinas()])
+      Promise.all([
+        carregarOrdens(),
+        carregarMaquinas(),
+      ])
         .catch((error) => {
           console.error(error);
+
           Alert.alert(
             "Erro",
             "Não foi possível carregar as ordens e máquinas."
           );
         })
-        .finally(() => setCarregando(false));
+        .finally(() => {
+          setCarregando(false);
+        });
     }, [carregarOrdens, carregarMaquinas])
   );
 
@@ -126,9 +161,13 @@ const Administracao = () => {
     setAtualizando(true);
 
     try {
-      await Promise.all([carregarOrdens(), carregarMaquinas()]);
+      await Promise.all([
+        carregarOrdens(),
+        carregarMaquinas(),
+      ]);
     } catch (error) {
       console.error(error);
+
       Alert.alert(
         "Erro",
         "Não foi possível atualizar as ordens e máquinas."
@@ -138,45 +177,6 @@ const Administracao = () => {
     }
   };
 
-  const selecionarImagem = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 0.8,
-      base64: true,
-    });
-
-    if (!result.canceled) {
-      const asset = result.assets[0];
-      setImagemUri(asset.base64 ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}` : asset.uri);
-    }
-  };
-
-  const tirarFoto = async () => {
-    const { status: cameraStatus } =
-      await ImagePicker.requestCameraPermissionsAsync();
-
-    if (cameraStatus !== "granted") {
-      Alert.alert(
-        "Permissão necessária",
-        "É necessária a permissão de acesso à câmera para tirar fotos."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.8,
-      base64: true,
-    });
-
-    if (!result.canceled) {
-      const asset = result.assets[0];
-      setImagemUri(asset.base64 ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}` : asset.uri);
-    }
-  };
-
-
   const cancelarOrdem = () => {
     setMaquinaId("");
     setStatus("");
@@ -184,7 +184,6 @@ const Administracao = () => {
     setDescricao("");
     setMarca("");
     setNomeMecanico("");
-    setImagemUri(null);
     setClicouSalvar(false);
     setAbrirSelecao(false);
     setModalOrdem(false);
@@ -205,13 +204,18 @@ const Administracao = () => {
         "Aviso",
         "Preencha todos os campos corretamente."
       );
+
       return;
     }
 
-    const userId = await obterUserId();
+    const userId = await buscarIdUsuario();
 
     if (!userId) {
-      Alert.alert("Erro", "Usuário não encontrado.");
+      Alert.alert(
+        "Erro",
+        "O ID do usuário não foi encontrado. Faça login novamente."
+      );
+
       return;
     }
 
@@ -222,8 +226,7 @@ const Administracao = () => {
       descricao_problema: descricao.trim(),
       marca: marca.trim(),
       nome_mecanico: nomeMecanico.trim(),
-      imagem: imagemUri || "",
-      id_usuario: Number(userId),
+      id_usuario: userId,
       status_ia: "Pendente",
     };
 
@@ -235,7 +238,11 @@ const Administracao = () => {
         novaOrdem
       );
 
-      setOrdens((prev) => [data, ...prev]);
+      if (data) {
+        setOrdens((prev) => [data, ...prev]);
+      } else {
+        await carregarOrdens();
+      }
 
       Alert.alert(
         "Sucesso",
@@ -243,12 +250,18 @@ const Administracao = () => {
       );
 
       cancelarOrdem();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar ordem:", error);
+
+      const mensagemBackend =
+        error?.response?.data?.message ||
+        error?.response?.data?.erro ||
+        error?.response?.data?.error;
 
       Alert.alert(
         "Erro",
-        "Falha ao salvar a ordem de serviço."
+        mensagemBackend ||
+          "Falha ao salvar a ordem de serviço."
       );
     } finally {
       setEnviando(false);
@@ -279,6 +292,7 @@ const Administracao = () => {
         "Aviso",
         "Preencha todos os campos da máquina corretamente."
       );
+
       return;
     }
 
@@ -306,12 +320,18 @@ const Administracao = () => {
       );
 
       cancelarMaquina();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar máquina:", error);
+
+      const mensagemBackend =
+        error?.response?.data?.message ||
+        error?.response?.data?.erro ||
+        error?.response?.data?.error;
 
       Alert.alert(
         "Erro",
-        "Falha ao salvar a máquina."
+        mensagemBackend ||
+          "Falha ao salvar a máquina."
       );
     } finally {
       setEnviandoMaquina(false);
@@ -319,32 +339,68 @@ const Administracao = () => {
   };
 
   const handleLogout = async () => {
-    await removerUserId();
+    try {
+      await removerUserId();
+    } catch (error) {
+      console.error(
+        "Erro ao remover usuário:",
+        error
+      );
+    }
+
     router.replace("/");
   };
 
-  const ordensAbertas = ordens.filter(
-    (o) => o.status === "Aberta"
-  ).length;
+  const totalOrdens = ordens.length;
 
-  const ordensManutencao = ordens.filter(
-    (o) => o.status === "Em manutenção"
-  ).length;
+  const ordensAbertas = ordens.filter((o) => {
+    const statusOrdem = o.status?.trim().toLowerCase();
 
-  const ordensConcluidas = ordens.filter(
-    (o) => o.status === "Concluída"
-  ).length;
+    return (
+      statusOrdem === "aberta" ||
+      statusOrdem === "pendente"
+    );
+  }).length;
+
+  const ordensManutencao = ordens.filter((o) => {
+    const statusOrdem = o.status?.trim().toLowerCase();
+
+    return (
+      statusOrdem === "em manutenção" ||
+      statusOrdem === "em manutencao"
+    );
+  }).length;
+
+  const ordensConcluidas = ordens.filter((o) => {
+    const statusOrdem = o.status?.trim().toLowerCase();
+
+    return (
+      statusOrdem === "concluída" ||
+      statusOrdem === "concluida"
+    );
+  }).length;
+
+  const mostrarSomenteData = (data: string) => {
+    if (!data) {
+      return "";
+    }
+
+    return String(data).substring(0, 10);
+  };
 
   return (
     <View className="flex-1 bg-[#F5F7F6] pt-12">
 
       {/* HEADER */}
       <View className="w-full flex-row items-center justify-between bg-[#24ca85] px-4 py-3 shadow-sm">
+
         <Pressable
           onPress={() => setMenuAberto(!menuAberto)}
           className="p-2 active:opacity-70"
         >
-          <Text className="text-3xl text-white">☰</Text>
+          <Text className="text-3xl text-white">
+            ☰
+          </Text>
         </Pressable>
 
         <Image
@@ -354,6 +410,7 @@ const Administracao = () => {
         />
 
         <View className="flex-row items-center gap-1">
+
           <Pressable
             onPress={handleLogout}
             className="p-2 active:opacity-70"
@@ -372,12 +429,14 @@ const Administracao = () => {
               contentFit="contain"
             />
           </Pressable>
+
         </View>
       </View>
 
-      {/* MENU LATERAL */}
+      {/* MENU */}
       {menuAberto && (
         <View className="absolute left-0 top-28 z-50 w-72 rounded-br-2xl rounded-tr-2xl border border-[#DDE5E0] bg-white p-5 shadow-2xl">
+
           <Text className="mb-4 text-xl font-bold text-[#24ca85]">
             Menu
           </Text>
@@ -414,10 +473,11 @@ const Administracao = () => {
               Histórico
             </Text>
           </Pressable>
+
         </View>
       )}
 
-      {/* CONTEÚDO PRINCIPAL */}
+      {/* CONTEÚDO */}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -431,6 +491,7 @@ const Administracao = () => {
         <View className="p-5">
 
           <View className="mb-6">
+
             <Text className="text-3xl font-bold text-[#202124]">
               Administração
             </Text>
@@ -438,10 +499,25 @@ const Administracao = () => {
             <Text className="mt-1 text-base text-[#73777A]">
               Visão geral do sistema
             </Text>
+
           </View>
 
-          {/* CARDS RESUMO */}
+          {/* CARDS */}
           <View className="gap-4">
+
+            <View className="rounded-2xl bg-[#24ca85] p-5 shadow-sm">
+              <Text className="text-lg font-bold text-white">
+                Ordens Cadastradas
+              </Text>
+
+              <Text className="mt-2 text-4xl font-extrabold text-white">
+                {totalOrdens}
+              </Text>
+
+              <Text className="mt-1 text-sm text-white/80">
+                Total de ordens no sistema
+              </Text>
+            </View>
 
             <View className="rounded-2xl bg-[#F88C38] p-5 shadow-sm">
               <Text className="text-lg font-bold text-white">
@@ -485,8 +561,9 @@ const Administracao = () => {
               </Text>
             </View>
 
-            {/* ORDEM DE SERVIÇO */}
+            {/* ORDEM */}
             <View className="rounded-2xl bg-white p-5 shadow-sm">
+
               <Text className="text-xl font-bold text-[#202124]">
                 Ordem de Serviço
               </Text>
@@ -503,10 +580,12 @@ const Administracao = () => {
                   + Adicionar Ordem
                 </Text>
               </Pressable>
+
             </View>
 
             {/* MÁQUINA */}
             <View className="rounded-2xl bg-white p-5 shadow-sm">
+
               <Text className="text-xl font-bold text-[#202124]">
                 Máquina
               </Text>
@@ -523,22 +602,28 @@ const Administracao = () => {
                   + Adicionar Máquina
                 </Text>
               </Pressable>
+
             </View>
+
           </View>
 
-          {/* LISTA DE MÁQUINAS */}
+          {/* MÁQUINAS */}
           {!carregando && maquinas.length > 0 && (
             <View className="mt-8">
+
               <Text className="mb-4 text-2xl font-bold text-[#202124]">
                 Máquinas cadastradas
               </Text>
 
               <FlatList
                 data={maquinas}
-                keyExtractor={(item) => String(item.id_maquinas)}
+                keyExtractor={(item) =>
+                  String(item.id_maquinas)
+                }
                 scrollEnabled={false}
                 renderItem={({ item }) => (
                   <View className="mb-3 rounded-2xl bg-white p-4 shadow-sm">
+
                     <Text className="text-lg font-bold text-[#202124]">
                       Máquina #{item.id_maquinas}
                     </Text>
@@ -558,13 +643,15 @@ const Administracao = () => {
                     <Text className="mt-1 text-sm text-[#73777A]">
                       Status: {item.status}
                     </Text>
+
                   </View>
                 )}
               />
+
             </View>
           )}
 
-          {/* LISTA DE ORDENS */}
+          {/* ORDENS */}
           {carregando ? (
             <ActivityIndicator
               size="large"
@@ -573,6 +660,7 @@ const Administracao = () => {
           ) : (
             ordens.length > 0 && (
               <View className="mt-8">
+
                 <Text className="mb-4 text-2xl font-bold text-[#202124]">
                   Ordens cadastradas
                 </Text>
@@ -609,7 +697,9 @@ const Administracao = () => {
                           <Text className="font-bold">
                             Data Abertura:
                           </Text>{" "}
-                          {ordem.data_abertura}
+                          {mostrarSomenteData(
+                            ordem.data_abertura
+                          )}
                         </Text>
                       )}
 
@@ -634,14 +724,6 @@ const Administracao = () => {
                         {ordem.nome_mecanico || "N/A"}
                       </Text>
 
-                      {ordem.imagem && (
-                        <Image
-                          source={{ uri: ordem.imagem }}
-                          style={styles.imagemOrdem}
-                          contentFit="cover"
-                        />
-                      )}
-
                       {ordem.status_ia && (
                         <Text className="mt-1 text-sm text-[#3F4442]">
                           <Text className="font-bold">
@@ -654,6 +736,7 @@ const Administracao = () => {
                     </View>
                   )}
                 />
+
               </View>
             )
           )}
@@ -661,9 +744,10 @@ const Administracao = () => {
         </View>
       </ScrollView>
 
-      {/* MODAL DE CADASTRO DE MÁQUINA */}
+      {/* MODAL MÁQUINA */}
       {modalMaquina && (
         <View className="absolute inset-0 z-50 bg-black/50">
+
           <ScrollView
             className="flex-1 px-5"
             contentContainerStyle={{
@@ -672,12 +756,13 @@ const Administracao = () => {
             }}
             showsVerticalScrollIndicator={false}
           >
+
             <View className="my-auto w-full rounded-3xl bg-white p-6">
+
               <Text className="text-2xl font-bold text-[#202124]">
                 Nova Máquina
               </Text>
 
-              {/* ID DA MÁQUINA */}
               <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
                 ID da Máquina
               </Text>
@@ -691,13 +776,13 @@ const Administracao = () => {
                 className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
               />
 
-              {clicouSalvarMaquina && !isIdMaquinaValid && (
-                <Text className="mt-1 text-xs text-red-500">
-                  ID da máquina inválido
-                </Text>
-              )}
+              {clicouSalvarMaquina &&
+                !isIdMaquinaValid && (
+                  <Text className="mt-1 text-xs text-red-500">
+                    ID da máquina inválido
+                  </Text>
+                )}
 
-              {/* MODELO */}
               <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
                 Modelo da Máquina
               </Text>
@@ -711,13 +796,13 @@ const Administracao = () => {
                 className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
               />
 
-              {clicouSalvarMaquina && !isModeloMaquinaValid && (
-                <Text className="mt-1 text-xs text-red-500">
-                  Modelo inválido
-                </Text>
-              )}
+              {clicouSalvarMaquina &&
+                !isModeloMaquinaValid && (
+                  <Text className="mt-1 text-xs text-red-500">
+                    Modelo inválido
+                  </Text>
+                )}
 
-              {/* MARCA */}
               <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
                 Marca da Máquina
               </Text>
@@ -731,13 +816,13 @@ const Administracao = () => {
                 className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
               />
 
-              {clicouSalvarMaquina && !isMarcaMaquinaValid && (
-                <Text className="mt-1 text-xs text-red-500">
-                  Marca inválida
-                </Text>
-              )}
+              {clicouSalvarMaquina &&
+                !isMarcaMaquinaValid && (
+                  <Text className="mt-1 text-xs text-red-500">
+                    Marca inválida
+                  </Text>
+                )}
 
-              {/* ANO */}
               <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
                 Ano da Máquina
               </Text>
@@ -752,34 +837,37 @@ const Administracao = () => {
                 className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
               />
 
-              {clicouSalvarMaquina && !isAnoMaquinaValid && (
-                <Text className="mt-1 text-xs text-red-500">
-                  Ano inválido
-                </Text>
-              )}
+              {clicouSalvarMaquina &&
+                !isAnoMaquinaValid && (
+                  <Text className="mt-1 text-xs text-red-500">
+                    Ano inválido
+                  </Text>
+                )}
 
-              {/* STATUS */}
               <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
                 Status
               </Text>
 
               <TextInput
                 value={statusMaquina}
-                onChangeText={(texto) => setStatusMaquina(texto.slice(0, 1))}
+                onChangeText={(texto) =>
+                  setStatusMaquina(texto.slice(0, 1))
+                }
                 placeholder="Ex: A"
                 placeholderTextColor="#73777A"
                 maxLength={1}
                 className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
               />
 
-              {clicouSalvarMaquina && !isStatusMaquinaValid && (
-                <Text className="mt-1 text-xs text-red-500">
-                  O status deve ter 1 caractere
-                </Text>
-              )}
+              {clicouSalvarMaquina &&
+                !isStatusMaquinaValid && (
+                  <Text className="mt-1 text-xs text-red-500">
+                    O status deve ter 1 caractere
+                  </Text>
+                )}
 
-              {/* BOTÕES */}
               <View className="mt-6 flex-row gap-3">
+
                 <Pressable
                   onPress={adicionarMaquina}
                   disabled={enviandoMaquina}
@@ -803,15 +891,20 @@ const Administracao = () => {
                     Cancelar
                   </Text>
                 </Pressable>
+
               </View>
+
             </View>
+
           </ScrollView>
+
         </View>
       )}
 
-      {/* MODAL DE CADASTRO */}
+      {/* MODAL ORDEM */}
       {modalOrdem && (
         <View className="absolute inset-0 z-50 bg-black/50">
+
           <ScrollView
             className="flex-1 px-5"
             contentContainerStyle={{
@@ -820,6 +913,7 @@ const Administracao = () => {
             }}
             showsVerticalScrollIndicator={false}
           >
+
             <View className="my-auto w-full rounded-3xl bg-white p-6">
 
               <Text className="text-2xl font-bold text-[#202124]">
@@ -832,7 +926,9 @@ const Administracao = () => {
               </Text>
 
               <Pressable
-                onPress={() => setAbrirSelecao(!abrirSelecao)}
+                onPress={() =>
+                  setAbrirSelecao(!abrirSelecao)
+                }
                 className="w-full flex-row items-center justify-between rounded-xl border border-[#DDE5E0] bg-white px-4 py-3"
               >
                 <Text
@@ -859,30 +955,25 @@ const Administracao = () => {
                     data={maquinas}
                     keyExtractor={(item, index) =>
                       String(
-                        item.id_maquinas ??
-                        item.id_maquinas ??
-                        index
+                        item.id_maquinas ?? index
                       )
                     }
                     scrollEnabled={false}
-                    renderItem={({ item }) => {
-                      const id =
-                        item.id_maquinas ?? item.id_maquinas;
-
-                      return (
-                        <Pressable
-                          className="border-b border-gray-100 px-4 py-3 active:bg-gray-100"
-                          onPress={() => {
-                            setMaquinaId(String(id));
-                            setAbrirSelecao(false);
-                          }}
-                        >
-                          <Text className="text-base text-[#202124]">
-                            {id}
-                          </Text>
-                        </Pressable>
-                      );
-                    }}
+                    renderItem={({ item }) => (
+                      <Pressable
+                        className="border-b border-gray-100 px-4 py-3 active:bg-gray-100"
+                        onPress={() => {
+                          setMaquinaId(
+                            String(item.id_maquinas)
+                          );
+                          setAbrirSelecao(false);
+                        }}
+                      >
+                        <Text className="text-base text-[#202124]">
+                          {item.id_maquinas}
+                        </Text>
+                      </Pressable>
+                    )}
                   />
 
                 </View>
@@ -907,7 +998,7 @@ const Administracao = () => {
                 </Text>
               )}
 
-              {/* DATA DE ABERTURA */}
+              {/* DATA */}
               <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
                 Data de Abertura
               </Text>
@@ -922,13 +1013,14 @@ const Administracao = () => {
                 className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
               />
 
-              {clicouSalvar && !isDataAberturaValid && (
-                <Text className="mt-1 text-xs text-red-500">
-                  Data de abertura inválida
-                </Text>
-              )}
+              {clicouSalvar &&
+                !isDataAberturaValid && (
+                  <Text className="mt-1 text-xs text-red-500">
+                    Data de abertura inválida
+                  </Text>
+                )}
 
-              {/* DESCRIÇÃO DO PROBLEMA */}
+              {/* DESCRIÇÃO */}
               <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
                 Descrição do Problema
               </Text>
@@ -938,18 +1030,19 @@ const Administracao = () => {
                 onChangeText={setDescricao}
                 placeholder="Descreva o problema..."
                 placeholderTextColor="#73777A"
-                multiline={true}
+                multiline
                 numberOfLines={3}
                 textAlignVertical="top"
                 className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
                 style={styles.textArea}
               />
 
-              {clicouSalvar && !isDescricaoValid && (
-                <Text className="mt-1 text-xs text-red-500">
-                  Descrição muito curta
-                </Text>
-              )}
+              {clicouSalvar &&
+                !isDescricaoValid && (
+                  <Text className="mt-1 text-xs text-red-500">
+                    Descrição muito curta
+                  </Text>
+                )}
 
               {/* MARCA */}
               <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
@@ -970,7 +1063,7 @@ const Administracao = () => {
                 </Text>
               )}
 
-              {/* NOME DO MECÂNICO */}
+              {/* MECÂNICO */}
               <Text className="mt-4 mb-1 text-base font-bold text-[#3F4442]">
                 Nome do Mecânico
               </Text>
@@ -983,56 +1076,12 @@ const Administracao = () => {
                 className="rounded-xl border border-[#DDE5E0] px-4 py-3 text-base text-[#202124]"
               />
 
-              {clicouSalvar && !isMecanicoValid && (
-                <Text className="mt-1 text-xs text-red-500">
-                  Nome do mecânico inválido
-                </Text>
-              )}
-
-              {/* IMAGEM DO PROBLEMA */}
-              <Text className="mt-5 mb-2 text-lg font-bold text-[#202124]">
-                Imagem do Problema
-              </Text>
-
-              {imagemUri && (
-                <View className="mb-3 items-center">
-                  <Image
-                    source={{ uri: imagemUri }}
-                    style={styles.imagem}
-                    contentFit="cover"
-                  />
-                </View>
-              )}
-
-              <View className="items-center justify-center rounded-2xl border border-dashed border-[#DDE5E0] bg-[#FAFAFA] p-6">
-
-                <Pressable
-                  onPress={selecionarImagem}
-                  className="active:opacity-70"
-                >
-                  <Text className="text-base text-[#73777A]">
-                    {imagemUri
-                      ? "Trocar imagem"
-                      : "Selecionar imagem"}
+              {clicouSalvar &&
+                !isMecanicoValid && (
+                  <Text className="mt-1 text-xs text-red-500">
+                    Nome do mecânico inválido
                   </Text>
-                </Pressable>
-
-              </View>
-
-              <Pressable
-                onPress={tirarFoto}
-                className="mt-3 flex-row items-center gap-2 active:opacity-70"
-              >
-                <MaterialIcons
-                  name="photo-camera"
-                  size={20}
-                  color="#73777A"
-                />
-
-                <Text className="text-sm font-semibold text-[#73777A]">
-                  Tirar foto
-                </Text>
-              </Pressable>
+                )}
 
               {/* BOTÕES */}
               <View className="mt-6 flex-row gap-3">
@@ -1064,7 +1113,9 @@ const Administracao = () => {
               </View>
 
             </View>
+
           </ScrollView>
+
         </View>
       )}
 
@@ -1081,20 +1132,6 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
   },
-
-  imagem: {
-    width: "100%",
-    height: 160,
-    borderRadius: 12,
-  },
-
-  imagemOrdem: {
-    width: "100%",
-    height: 180,
-    borderRadius: 12,
-    marginTop: 12,
-  },
-
 });
 
 export default Administracao;

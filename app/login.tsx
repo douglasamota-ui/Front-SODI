@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from "react";
+
 import { View, Text, Image, StyleSheet, Alert } from "react-native";
+
 import { Link, useRouter } from "expo-router";
+
 import CampoDeTexto from "@/components/CampodeTexto/CampodeTexto";
+
 import Botao from "@/components/botao/botao";
+
 import { BasicSignin } from "@/service/user.service";
+
 import { obterUserId, salvarUserId } from "@/lib/secureStore";
 
 export default function Login() {
@@ -12,15 +18,22 @@ export default function Login() {
   const [email_usuario, setEmailUsuario] = useState<string>("");
   const [senha_usuario, setSenhaUsuario] = useState<string>("");
 
-  const [isErrorInEmail, setIsErrorInEmail] = useState<boolean>(false);
-  const [isErrorInSenha, setIsErrorInSenha] = useState<boolean>(false);
+  const [isErrorInEmail, setIsErrorInEmail] =
+    useState<boolean>(false);
+
+  const [isErrorInSenha, setIsErrorInSenha] =
+    useState<boolean>(false);
 
   useEffect(() => {
     const verificarLoginSalvo = async () => {
       try {
         const idSalvo = await obterUserId();
 
-        if (idSalvo && idSalvo !== "null" && idSalvo !== "undefined") {
+        if (
+          idSalvo &&
+          idSalvo !== "null" &&
+          idSalvo !== "undefined"
+        ) {
           router.replace("/home");
         }
       } catch (error) {
@@ -32,6 +45,7 @@ export default function Login() {
   }, []);
 
   const regex_email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   useEffect(() => {
     if (email_usuario === "") {
       setIsErrorInEmail(false);
@@ -48,31 +62,83 @@ export default function Login() {
     }
   }, [senha_usuario]);
 
-  const onSubmit = async (email: string, senha: string) => {
-    
-    if (email === "admin@gmail.com" && senha === "12345678") {
-      router.replace("/admin");
+  const onSubmit = async (
+    email: string,
+    senha: string
+  ) => {
+   
+    if (
+      email === "admin@gmail.com" &&
+      senha === "12345678"
+    ) {
+      try {
+        await salvarUserId("53");
+
+        console.log(
+          "ID : ",53
+        );
+
+        router.replace("/admin");
+      } catch (error) {
+        console.error(
+          "Erro ao salvar ID do administrador:",
+          error
+        );
+
+        Alert.alert(
+          "Erro",
+          "Não foi possível salvar a sessão do administrador."
+        );
+      }
+
       return;
     }
 
     try {
-      console.log("A enviar dados:", email, senha);
-      const resposta = await BasicSignin(email, senha);
+      console.log(
+        "A enviar dados:",
+        email,
+        senha
+      );
 
-      if (resposta?.status == 200) {
-        Alert.alert("Sucesso", "SEJA BEM-VINDO!");
+      const resposta = await BasicSignin(
+        email,
+        senha
+      );
 
-        await salvarUserId(JSON.stringify(resposta.data.id_usuario));
+      if (resposta?.status === 200) {
+        Alert.alert(
+          "Sucesso",
+          "SEJA BEM-VINDO!"
+        );
+
+       
+        await salvarUserId(
+          String(resposta.data.id_usuario)
+        );
+
+        console.log(
+          "ID DO USUÁRIO SALVO:",
+          resposta.data.id_usuario
+        );
+
         router.replace("/home");
       } else {
-        Alert.alert("Atenção", "E-mail ou senha incorretos.");
+        Alert.alert(
+          "Atenção",
+          "E-mail ou senha incorretos."
+        );
       }
     } catch (error: any) {
-      console.log("Erro ao efetuar login:", error);
+      console.log(
+        "Erro ao efetuar login:",
+        error
+      );
+
       Alert.alert(
         "Erro no Login",
         error?.response?.data?.message ||
-          "E-mail ou senha inválidos, ou falha na ligação.",
+          "E-mail ou senha inválidos, ou falha na ligação."
       );
     }
   };
@@ -93,7 +159,9 @@ export default function Login() {
 
       <View className="items-center">
         <View className="mb-8 items-center">
-          <Text className="font-sans text-black text-2xl">LOGIN</Text>
+          <Text className="font-sans text-black text-2xl">
+            LOGIN
+          </Text>
         </View>
 
         <View className="gap-6">
@@ -106,6 +174,7 @@ export default function Login() {
             isError={isErrorInEmail}
             textInputClassName="w-80"
           />
+
           <CampoDeTexto
             label="Senha"
             value={senha_usuario}
@@ -126,10 +195,17 @@ export default function Login() {
               email_usuario.trim() === "" ||
               senha_usuario.trim() === ""
             }
-            onPress={() => onSubmit(email_usuario, senha_usuario)}
+            onPress={() =>
+              onSubmit(
+                email_usuario,
+                senha_usuario
+              )
+            }
           >
             <View className="justify-center items-center">
-              <Text className="text-white text-xl">ENTRAR</Text>
+              <Text className="text-white text-xl">
+                ENTRAR
+              </Text>
             </View>
           </Botao>
         </View>
@@ -153,6 +229,7 @@ const styles = StyleSheet.create({
     top: "35%",
     zIndex: -1,
   },
+
   logo: {
     width: 120,
     height: 100,
@@ -160,3 +237,4 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 });
+
