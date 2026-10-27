@@ -10,9 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 
 import api from "@/lib/axios.config";
+import { removerUserId } from "@/lib/secureStore";
 
 // Interface definida localmente sem depender do arquivo externo @/types/ordemServico
 interface OrdemServico {
@@ -29,6 +32,8 @@ interface OrdemServico {
 }
 
 export default function AdminOrdensServicoPage() {
+  const router = useRouter();
+
   // Estados da Lista
   const [ordens, setOrdens] = useState<OrdemServico[]>([]);
   const [busca, setBusca] = useState("");
@@ -54,6 +59,7 @@ export default function AdminOrdensServicoPage() {
 
     const url = busca ? `/ordensservico?search=${busca}` : "/ordensservico";
 
+    console.log(busca);
     api
       .get<OrdemServico[]>(url)
       .then(({ data }) => {
@@ -73,6 +79,12 @@ export default function AdminOrdensServicoPage() {
   }, [busca]);
 
   useFocusEffect(carregarOrdens);
+
+  // LOGOUT
+  async function handleLogout() {
+    await removerUserId();
+    router.replace("/");
+  }
 
   // 2. ABRIR FORMULÁRIO PARA CRIAR
   const abrirCriar = () => {
@@ -146,13 +158,15 @@ export default function AdminOrdensServicoPage() {
           onPress: async () => {
             try {
               await api.delete(`/deleta/${id_ordem}`);
-              setOrdens((prev) => prev.filter((item) => item.id_ordem !== id_ordem));
+              setOrdens((prev) =>
+                prev.filter((item) => item.id_ordem !== id_ordem),
+              );
             } catch (error) {
               Alert.alert("Erro", "Falha ao excluir a ordem de serviço.");
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -160,13 +174,30 @@ export default function AdminOrdensServicoPage() {
     <View className="flex-1 bg-gray-100 p-4">
       {/* Cabeçalho */}
       <View className="flex-row justify-between items-center mb-4 pt-8">
-        <Text className="text-2xl font-bold text-gray-800">Painel OS</Text>
-        <TouchableOpacity
-          className="bg-blue-600 px-4 py-2 rounded-lg"
-          onPress={abrirCriar}
-        >
-          <Text className="text-white font-bold">+ Nova OS</Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-3">
+          <Image
+            source={require("@/assets/image/sodi_logo_preto.jpg")}
+            style={{ width: 64, height: 48 }}
+            contentFit="contain"
+          />
+          <Text className="text-2xl font-bold text-gray-800">Painel OS</Text>
+        </View>
+
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity
+            className="bg-[#3C8670] px-4 py-2 rounded-lg"
+            onPress={abrirCriar}
+          >
+            <Text className="text-white font-bold">+ Nova OS</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleLogout}
+            className="p-2 bg-gray-200 items-center justify-center rounded-lg"
+          >
+            <Ionicons name="log-out-outline" size={22} color="#374151" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Campo de Busca */}
@@ -179,7 +210,7 @@ export default function AdminOrdensServicoPage() {
 
       {/* Lista de OS */}
       {carregando ? (
-        <ActivityIndicator className="flex-1" size="large" color="#2563eb" />
+        <ActivityIndicator className="flex-1" size="large" color="#3C8670" />
       ) : (
         <FlatList
           data={ordens}
@@ -196,12 +227,14 @@ export default function AdminOrdensServicoPage() {
               </View>
 
               {item.modelo_maquina && (
-                <Text className="text-xs text-blue-600 font-semibold mb-1">
+                <Text className="text-xs text-[#3C8670] font-semibold mb-1">
                   Máquina: {item.marca_maquina} {item.modelo_maquina}
                 </Text>
               )}
 
-              <Text className="text-gray-600 mb-3">{item.descricao_problema}</Text>
+              <Text className="text-gray-600 mb-3">
+                {item.descricao_problema}
+              </Text>
 
               {/* Botões de Ação */}
               <View className="flex-row justify-end gap-3 pt-2 border-t border-gray-100">
@@ -310,7 +343,7 @@ export default function AdminOrdensServicoPage() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    className="flex-1 bg-blue-600 p-4 rounded-lg items-center"
+                    className="flex-1 bg-[#3C8670] p-4 rounded-lg items-center"
                     onPress={salvar}
                     disabled={salvando}
                   >
