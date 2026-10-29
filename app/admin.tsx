@@ -41,6 +41,7 @@ export default function AdminOrdensServicoPage() {
 
   // Estados do Modal / Formulário
   const [modalVisivel, setModalVisivel] = useState(false);
+  const [modalMaquinasVisivel, setModalMaquinasVisivel] = useState(false);
   const [modoEdicao, setModoEdicao] = useState(false);
   const [idEdicao, setIdEdicao] = useState<number | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -51,6 +52,16 @@ export default function AdminOrdensServicoPage() {
   const [status, setStatus] = useState("Pendente");
   const [idMaquinas, setIdMaquinas] = useState("");
   const [idUsuario, setIdUsuario] = useState("");
+
+  const opcoesMaquinas = [
+    { id: "1", nome: "YAKUZA – 1" },
+    { id: "2", nome: "DEERE-2" },
+    { id: "3", nome: "FERGUSON-3" },
+    { id: "33", nome: "TRATOR FEGUSON-33" },
+    { id: "34", nome: "TRATOR HOLLAND-34" },
+    { id: "35", nome: "TRATOR HGFGFD-35" },
+    { id: "36", nome: "COLHETEIRA-36" },
+  ];
 
   // 1. CARREGAR DADOS DO BACKEND
   const carregarOrdens = useCallback(() => {
@@ -98,13 +109,25 @@ export default function AdminOrdensServicoPage() {
     setModalVisivel(true);
   };
 
-  // 3. ABRIR FORMULÁRIO PARA EDITAR
+  // 3. ABRIR FORMULÁRIO PARA EDITAR (com mapeamento de status)
   const abrirEditar = (item: OrdemServico) => {
     setModoEdicao(true);
     setIdEdicao(item.id_ordem);
     setNomeMecanico(item.nome_mecanico || "");
     setDescricaoProblema(item.descricao_problema || "");
-    setStatus(item.status || "Pendente");
+
+    // Mapeamento para garantir que o número '1' seja exibido como 'Pendente'
+    const statusBruto = String(item.status || "");
+    if (statusBruto === "1") {
+      setStatus("Pendente");
+    } else if (statusBruto === "2") {
+      setStatus("Em Andamento");
+    } else if (statusBruto === "3") {
+      setStatus("Concluída");
+    } else {
+      setStatus(statusBruto || "Pendente");
+    }
+
     setIdMaquinas(String(item.id_maquinas || ""));
     setIdUsuario(String(item.id_usuario || ""));
     setModalVisivel(true);
@@ -168,6 +191,12 @@ export default function AdminOrdensServicoPage() {
         },
       ],
     );
+  };
+
+  // Função auxiliar para pegar o rótulo da máquina selecionada
+  const maquinaSelecionadaTexto = () => {
+    const maquina = opcoesMaquinas.find((m) => m.id === idMaquinas);
+    return maquina ? maquina.nome : "Selecione o ID da máquina";
   };
 
   return (
@@ -284,17 +313,27 @@ export default function AdminOrdensServicoPage() {
                   />
                 </View>
 
+                {/* Campo de Seleção de ID da Máquina */}
                 <View>
                   <Text className="font-semibold text-gray-700 mb-1">
                     ID da Máquina *
                   </Text>
-                  <TextInput
-                    className="border border-gray-300 p-3 rounded-lg"
-                    placeholder="Ex: 1"
-                    keyboardType="numeric"
-                    value={idMaquinas}
-                    onChangeText={setIdMaquinas}
-                  />
+
+                  <TouchableOpacity
+                    onPress={() => setModalMaquinasVisivel(true)}
+                    className="w-full bg-white border border-gray-300 rounded-lg p-3 flex-row justify-between items-center"
+                  >
+                    <Text
+                      className={
+                        idMaquinas
+                          ? "text-gray-800 text-sm"
+                          : "text-gray-400 text-sm"
+                      }
+                    >
+                      {maquinaSelecionadaTexto()}
+                    </Text>
+                    <Text className="text-gray-400 text-xs">▼</Text>
+                  </TouchableOpacity>
                 </View>
 
                 <View>
@@ -310,6 +349,7 @@ export default function AdminOrdensServicoPage() {
                   />
                 </View>
 
+                {/* Campo de Status */}
                 <View>
                   <Text className="font-semibold text-gray-700 mb-1">
                     Status
@@ -318,6 +358,7 @@ export default function AdminOrdensServicoPage() {
                     className="border border-gray-300 p-3 rounded-lg"
                     value={status}
                     onChangeText={setStatus}
+                    placeholder="Ex: Pendente, Em Andamento, Concluído"
                   />
                 </View>
 
@@ -358,6 +399,56 @@ export default function AdminOrdensServicoPage() {
                 </View>
               </View>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Escolha de ID da Máquina */}
+      <Modal
+        visible={modalMaquinasVisivel}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalMaquinasVisivel(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center p-4">
+          <View className="bg-white w-full max-w-sm rounded-2xl p-5 shadow-lg">
+            <Text className="text-lg font-bold text-gray-800 text-center mb-4">
+              Selecione o ID da Máquina
+            </Text>
+
+            <View className="flex-row flex-wrap justify-between gap-2 mb-4">
+              {opcoesMaquinas.map((itemMaquina) => (
+                <TouchableOpacity
+                  key={itemMaquina.id}
+                  onPress={() => {
+                    setIdMaquinas(itemMaquina.id);
+                    setModalMaquinasVisivel(false);
+                  }}
+                  className={`w-[48%] p-3 rounded-xl border items-center ${
+                    idMaquinas === itemMaquina.id
+                      ? "bg-[#3C8670] border-[#3C8670]"
+                      : "bg-gray-100 border-gray-300"
+                  }`}
+                >
+                  <Text
+                    className={`font-bold text-xs text-center ${
+                      idMaquinas === itemMaquina.id
+                        ? "text-white"
+                        : "text-gray-800"
+                    }`}
+                  >
+                    {itemMaquina.nome}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setModalMaquinasVisivel(false)}
+              className="bg-gray-200 p-3 rounded-xl items-center"
+            >
+              <Text className="text-gray-700 font-bold">Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
